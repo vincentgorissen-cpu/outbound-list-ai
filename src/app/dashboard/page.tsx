@@ -1,10 +1,7 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 const ROADMAP = [
-  {
-    title: "Bedrijvenlijst uploaden",
-    description: "CSV of XLSX uploaden met bedrijfsnamen.",
-  },
   {
     title: "Verrijken via KVK",
     description: "Bedrijven controleren en aanvullen met KVK-gegevens.",
@@ -27,11 +24,23 @@ export default async function DashboardPage() {
         Welkom{user?.email ? `, ${user.email}` : ""}
       </h1>
       <p className="mt-1 text-sm text-slate-500">
-        Dit is de technische basis. De onderdelen hieronder volgen in een
-        volgende stap.
+        Begin met het importeren van een bedrijvenlijst. KVK-verrijking en
+        AI-scoring volgen in een volgende stap.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <Link
+          href="/dashboard/import"
+          className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
+        >
+          <h2 className="text-sm font-medium text-slate-900">
+            Bedrijvenlijst importeren
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            CSV of XLSX uploaden, kolommen koppelen en importeren.
+          </p>
+        </Link>
+
         {ROADMAP.map((item) => (
           <div
             key={item.title}
