@@ -144,6 +144,50 @@ export interface KvkVestigingsprofiel {
 export type KvkBedrijfsstatus = "actief" | "inactief";
 
 /**
+ * Classificatie van een match op basis van de confidence score:
+ * - high_confidence (90-100): betrouwbaar genoeg om als definitief te
+ *   beschouwen.
+ * - review_required (70-89): plausibele kandidaat, maar een mens moet
+ *   het bevestigen.
+ * - no_reliable_match (<70, of geen kandidaten): niet automatisch
+ *   bruikbaar.
+ */
+export type KvkMatchStatus = "high_confidence" | "review_required" | "no_reliable_match";
+
+export interface KvkMatchScoreBreakdown {
+  bedrijfsnaam: number;
+  postcode: number | null;
+  plaats: number | null;
+  website: number | null;
+}
+
+export interface KvkMatchCandidate {
+  kvkNummer: string;
+  naam: string;
+  /** 0-100, gewogen gemiddelde van de beschikbare deelscores. */
+  score: number;
+  scoreBreakdown: KvkMatchScoreBreakdown;
+}
+
+export interface KvkMatchInput {
+  bedrijfsnaam: string;
+  postcode?: string | null;
+  plaats?: string | null;
+  website?: string | null;
+}
+
+export interface KvkMatchResult {
+  status: KvkMatchStatus;
+  /** Beste kandidaat, ook bij een lage score — status geeft aan hoezeer je hem kunt vertrouwen. */
+  chosenKvkNummer: string | null;
+  confidence: number | null;
+  /** Alle beoordeelde kandidaten, aflopend gesorteerd op score (incl. de gekozen kandidaat). */
+  candidates: KvkMatchCandidate[];
+  /** ISO-tijdstip waarop deze match is uitgevoerd. */
+  gecontroleerdOp: string;
+}
+
+/**
  * De genormaliseerde verrijkingsgegevens die we naast (nooit in plaats
  * van) de originele upload opslaan.
  */

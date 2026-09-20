@@ -13,6 +13,7 @@ export type Json =
 
 export type ImportStatus = "pending_mapping" | "completed" | "failed";
 export type KvkEnrichmentStatus = "actief" | "inactief";
+export type KvkMatchStatus = "high_confidence" | "review_required" | "no_reliable_match";
 
 export interface Database {
   public: {
@@ -194,6 +195,45 @@ export interface Database {
         };
         Relationships: [];
       };
+      kvk_matches: {
+        Row: {
+          id: string;
+          import_row_id: string;
+          user_id: string;
+          status: KvkMatchStatus;
+          chosen_kvk_nummer: string | null;
+          confidence: number | null;
+          candidates: Json;
+          gecontroleerd_op: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_row_id: string;
+          user_id: string;
+          status: KvkMatchStatus;
+          chosen_kvk_nummer?: string | null;
+          confidence?: number | null;
+          candidates?: Json;
+          gecontroleerd_op: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_row_id?: string;
+          user_id?: string;
+          status?: KvkMatchStatus;
+          chosen_kvk_nummer?: string | null;
+          confidence?: number | null;
+          candidates?: Json;
+          gecontroleerd_op?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -207,3 +247,4 @@ export type ImportRecordRow =
   Database["public"]["Tables"]["import_rows"]["Row"];
 export type KvkEnrichmentRow =
   Database["public"]["Tables"]["kvk_enrichments"]["Row"];
+export type KvkMatchRow = Database["public"]["Tables"]["kvk_matches"]["Row"];
