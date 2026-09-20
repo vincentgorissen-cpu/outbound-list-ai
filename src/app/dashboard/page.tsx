@@ -3,10 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 
 const ROADMAP = [
   {
-    title: "Verrijken via KVK",
-    description: "Bedrijven controleren en aanvullen met KVK-gegevens.",
-  },
-  {
     title: "AI-fit scoring",
     description: "Bedrijven laten scoren op basis van je ideale klantprofiel.",
   },
@@ -24,8 +20,8 @@ export default async function DashboardPage() {
         Welkom{user?.email ? `, ${user.email}` : ""}
       </h1>
       <p className="mt-1 text-sm text-slate-500">
-        Begin met het importeren van een bedrijvenlijst. KVK-verrijking en
-        AI-scoring volgen in een volgende stap.
+        Begin met het importeren van een bedrijvenlijst. AI-scoring volgt in
+        een volgende stap.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -38,6 +34,19 @@ export default async function DashboardPage() {
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             CSV of XLSX uploaden, kolommen koppelen en importeren.
+          </p>
+        </Link>
+
+        <Link
+          href="/dashboard/kvk-review"
+          className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
+        >
+          <h2 className="text-sm font-medium text-slate-900">
+            KVK-matches controleren
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Bedrijven waarvoor geen automatisch bevestigde KVK-match is
+            gevonden.
           </p>
         </Link>
 

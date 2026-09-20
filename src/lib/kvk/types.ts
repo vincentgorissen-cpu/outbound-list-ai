@@ -164,6 +164,8 @@ export interface KvkMatchScoreBreakdown {
 export interface KvkMatchCandidate {
   kvkNummer: string;
   naam: string;
+  /** Vestigingsplaats indien bekend uit de zoekresultaten of het vestigingsprofiel. */
+  plaats: string | null;
   /** 0-100, gewogen gemiddelde van de beschikbare deelscores. */
   score: number;
   scoreBreakdown: KvkMatchScoreBreakdown;
@@ -186,6 +188,14 @@ export interface KvkMatchResult {
   /** ISO-tijdstip waarop deze match is uitgevoerd. */
   gecontroleerdOp: string;
 }
+
+/**
+ * Menselijke beslissing op een review_required/no_reliable_match-match:
+ * "confirmed" met een kvk-nummer (voorgesteld of een andere kandidaat),
+ * of "rejected" (geen enkele kandidaat klopt). Ontbreekt (null) zolang
+ * niemand de match heeft beoordeeld.
+ */
+export type KvkMatchResolution = "confirmed" | "rejected";
 
 /**
  * De genormaliseerde verrijkingsgegevens die we naast (nooit in plaats

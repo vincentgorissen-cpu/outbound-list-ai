@@ -12,6 +12,7 @@ const MATCH: KvkMatchResult = {
     {
       kvkNummer: "68750110",
       naam: "Test BV Donald",
+      plaats: "Rommeldam",
       score: 82,
       scoreBreakdown: { bedrijfsnaam: 90, postcode: null, plaats: 0, website: null },
     },

@@ -14,6 +14,7 @@ export type Json =
 export type ImportStatus = "pending_mapping" | "completed" | "failed";
 export type KvkEnrichmentStatus = "actief" | "inactief";
 export type KvkMatchStatus = "high_confidence" | "review_required" | "no_reliable_match";
+export type KvkMatchResolution = "confirmed" | "rejected";
 
 export interface Database {
   public: {
@@ -205,6 +206,9 @@ export interface Database {
           confidence: number | null;
           candidates: Json;
           gecontroleerd_op: string;
+          resolution: KvkMatchResolution | null;
+          resolved_kvk_nummer: string | null;
+          resolved_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -217,6 +221,9 @@ export interface Database {
           confidence?: number | null;
           candidates?: Json;
           gecontroleerd_op: string;
+          resolution?: KvkMatchResolution | null;
+          resolved_kvk_nummer?: string | null;
+          resolved_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -229,6 +236,9 @@ export interface Database {
           confidence?: number | null;
           candidates?: Json;
           gecontroleerd_op?: string;
+          resolution?: KvkMatchResolution | null;
+          resolved_kvk_nummer?: string | null;
+          resolved_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -63,6 +63,7 @@ export function scoreCandidate(input: KvkMatchInput, candidate: CandidateData): 
   return {
     kvkNummer: candidate.kvkNummer,
     naam: candidate.naam,
+    plaats: candidate.plaats ?? null,
     score: Math.round(weightedScore),
     scoreBreakdown: {
       bedrijfsnaam: bedrijfsnaamScore,
