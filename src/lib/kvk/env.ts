@@ -14,18 +14,29 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const DEFAULT_BASE_URL = "https://api.kvk.nl/api/v2/zoeken";
+const KVK_HOST = "https://api.kvk.nl";
+
+/**
+ * KVK gebruikt exact dezelfde paden voor test en productie, met alleen
+ * een "/test" segment ertussen (geverifieerd: .../api/v2/zoeken vs.
+ * .../test/api/v2/zoeken). Daarom volstaat één omgevingsvariabele.
+ */
+function apiRoot(): string {
+  const isTest = (process.env.KVK_API_ENVIRONMENT ?? "production").trim().toLowerCase() === "test";
+  return isTest ? `${KVK_HOST}/test/api` : `${KVK_HOST}/api`;
+}
 
 export const kvkEnv = {
   get apiKey() {
     return requireEnv("KVK_API_KEY");
   },
-  /**
-   * Standaard de productie-endpoint. Zet KVK_API_BASE_URL op
-   * https://api.kvk.nl/test/api/v2/zoeken om tegen de KVK-testomgeving
-   * te draaien (werkt met de door KVK gepubliceerde vaste test-key).
-   */
-  get baseUrl() {
-    return process.env.KVK_API_BASE_URL?.trim() || DEFAULT_BASE_URL;
+  get zoekenUrl() {
+    return `${apiRoot()}/v2/zoeken`;
+  },
+  get basisprofielenUrl() {
+    return `${apiRoot()}/v1/basisprofielen`;
+  },
+  get vestigingsprofielenUrl() {
+    return `${apiRoot()}/v1/vestigingsprofielen`;
   },
 };

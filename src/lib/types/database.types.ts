@@ -12,6 +12,7 @@ export type Json =
   | Json[];
 
 export type ImportStatus = "pending_mapping" | "completed" | "failed";
+export type KvkEnrichmentStatus = "actief" | "inactief";
 
 export interface Database {
   public: {
@@ -136,6 +137,63 @@ export interface Database {
         };
         Relationships: [];
       };
+      kvk_enrichments: {
+        Row: {
+          id: string;
+          import_row_id: string;
+          user_id: string;
+          kvk_nummer: string;
+          officiele_naam: string;
+          handelsnamen: Json;
+          rechtsvorm: string | null;
+          status: KvkEnrichmentStatus;
+          sbi_codes: Json;
+          sbi_omschrijvingen: Json;
+          aantal_werkzame_personen: number | null;
+          vestigingsplaats: string | null;
+          website: string | null;
+          opgehaald_op: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_row_id: string;
+          user_id: string;
+          kvk_nummer: string;
+          officiele_naam: string;
+          handelsnamen?: Json;
+          rechtsvorm?: string | null;
+          status: KvkEnrichmentStatus;
+          sbi_codes?: Json;
+          sbi_omschrijvingen?: Json;
+          aantal_werkzame_personen?: number | null;
+          vestigingsplaats?: string | null;
+          website?: string | null;
+          opgehaald_op: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_row_id?: string;
+          user_id?: string;
+          kvk_nummer?: string;
+          officiele_naam?: string;
+          handelsnamen?: Json;
+          rechtsvorm?: string | null;
+          status?: KvkEnrichmentStatus;
+          sbi_codes?: Json;
+          sbi_omschrijvingen?: Json;
+          aantal_werkzame_personen?: number | null;
+          vestigingsplaats?: string | null;
+          website?: string | null;
+          opgehaald_op?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -147,3 +205,5 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ImportRow = Database["public"]["Tables"]["imports"]["Row"];
 export type ImportRecordRow =
   Database["public"]["Tables"]["import_rows"]["Row"];
+export type KvkEnrichmentRow =
+  Database["public"]["Tables"]["kvk_enrichments"]["Row"];
