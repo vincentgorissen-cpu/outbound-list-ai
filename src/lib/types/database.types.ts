@@ -332,3 +332,4 @@ export type ImportRecordRow =
 export type KvkEnrichmentRow =
   Database["public"]["Tables"]["kvk_enrichments"]["Row"];
 export type KvkMatchRow = Database["public"]["Tables"]["kvk_matches"]["Row"];
+export type IcpScoreRow = Database["public"]["Tables"]["icp_scores"]["Row"];

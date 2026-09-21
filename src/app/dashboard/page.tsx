@@ -16,7 +16,17 @@ export default async function DashboardPage() {
         Begin met het importeren van een bedrijvenlijst.
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      <Link
+        href="/dashboard/results"
+        className="mt-6 block rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
+      >
+        <h2 className="text-sm font-medium text-slate-900">Resultaten bekijken</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Alle geïmporteerde bedrijven met KVK-gegevens, classificatie en ICP-score.
+        </p>
+      </Link>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Link
           href="/dashboard/import"
           className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
