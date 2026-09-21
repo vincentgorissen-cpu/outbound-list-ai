@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { IcpScoringError, scoreCompanyIcpFit } from "@/lib/icp/scoreCompany";
-import { storeIcpScore } from "@/lib/icp/storeIcpScore";
+import { runIcpForCompany, type IcpCompanyCandidate } from "@/lib/icp/runIcpForCompany";
 import { evaluatePrefilter } from "@/lib/icp/prefilter/evaluatePrefilter";
 import { parsePrefilterConfig } from "@/lib/icp/prefilter/parseConfig";
 import {
@@ -12,7 +11,6 @@ import {
   validatePrefilterConfig,
 } from "@/lib/icp/prefilter/buildConfigFromInput";
 import type { IcpPrefilterConfig } from "@/lib/icp/prefilter/types";
-import type { CompanyForScoring } from "@/lib/icp/types";
 import type { Database, Json, KvkEnrichmentStatus } from "@/lib/types/database.types";
 
 const AI_BATCH_LIMIT = 10;
@@ -290,48 +288,39 @@ export async function runIcpScoring(
     };
   }
 
-  for (const { candidate, reason } of excluded) {
-    await storeIcpScore(supabase, {
-      importRowId: candidate.import_row_id,
-      userId: user.id,
-      result: { status: "excluded_by_prefilter", reason },
-    });
-  }
+  const toProcess = [...excluded.map((e) => e.candidate), ...eligible.slice(0, AI_BATCH_LIMIT)];
 
-  const toScore = eligible.slice(0, AI_BATCH_LIMIT);
+  let excludedCount = 0;
   let scored = 0;
   let failed = 0;
 
-  for (const candidate of toScore) {
-    const company: CompanyForScoring = {
-      bedrijfsnaam: candidate.officiele_naam,
-      sbiOmschrijvingen: (candidate.sbi_omschrijvingen as string[] | null) ?? [],
-      aantalWerkzamePersonen: candidate.aantal_werkzame_personen,
-      plaats: candidate.vestigingsplaats,
-      website: candidate.website,
-    };
+  for (const candidate of toProcess) {
+    const outcome = await runIcpForCompany(supabase, {
+      userId: user.id,
+      icpProfileDescription: profileResult.description,
+      prefilterConfig: profileResult.config,
+      company: toIcpCompanyCandidate(candidate),
+    });
 
-    try {
-      const result = await scoreCompanyIcpFit(profileResult.description, company);
-      await storeIcpScore(supabase, {
-        importRowId: candidate.import_row_id,
-        userId: user.id,
-        result: { status: "scored", ...result },
-      });
-      scored += 1;
-    } catch (error) {
-      await storeIcpScore(supabase, {
-        importRowId: candidate.import_row_id,
-        userId: user.id,
-        result: {
-          status: "ai_processing_failed",
-          errorMessage: error instanceof IcpScoringError ? error.message : "Onbekende fout.",
-        },
-      });
-      failed += 1;
-    }
+    if (outcome.outcome === "excluded") excludedCount += 1;
+    else if (outcome.outcome === "scored") scored += 1;
+    else failed += 1;
   }
 
   revalidatePath("/dashboard/icp");
-  return { status: "success", excluded: excluded.length, scored, failed };
+  return { status: "success", excluded: excludedCount, scored, failed };
+}
+
+function toIcpCompanyCandidate(candidate: EnrichmentCandidate): IcpCompanyCandidate {
+  return {
+    importRowId: candidate.import_row_id,
+    officieleNaam: candidate.officiele_naam,
+    rechtsvorm: candidate.rechtsvorm,
+    status: candidate.status,
+    sbiCodes: (candidate.sbi_codes as string[] | null) ?? [],
+    sbiOmschrijvingen: (candidate.sbi_omschrijvingen as string[] | null) ?? [],
+    aantalWerkzamePersonen: candidate.aantal_werkzame_personen,
+    plaats: candidate.vestigingsplaats,
+    website: candidate.website,
+  };
 }

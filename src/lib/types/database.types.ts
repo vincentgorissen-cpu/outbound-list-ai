@@ -18,6 +18,12 @@ export type KvkMatchResolution = "confirmed" | "rejected";
 export type IcpScoreStatus = "scored" | "ai_processing_failed" | "excluded_by_prefilter";
 export type IcpClassification = "high_fit" | "medium_fit" | "low_fit";
 export type IcpPrefilterStatus = "passed" | "excluded";
+export type CompanyProcessingStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "review_required"
+  | "failed";
 
 export interface Database {
   public: {
@@ -328,6 +334,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      company_processing: {
+        Row: {
+          id: string;
+          import_row_id: string;
+          user_id: string;
+          status: CompanyProcessingStatus;
+          error_message: string | null;
+          last_attempted_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_row_id: string;
+          user_id: string;
+          status?: CompanyProcessingStatus;
+          error_message?: string | null;
+          last_attempted_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_row_id?: string;
+          user_id?: string;
+          status?: CompanyProcessingStatus;
+          error_message?: string | null;
+          last_attempted_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -343,3 +385,5 @@ export type KvkEnrichmentRow =
   Database["public"]["Tables"]["kvk_enrichments"]["Row"];
 export type KvkMatchRow = Database["public"]["Tables"]["kvk_matches"]["Row"];
 export type IcpScoreRow = Database["public"]["Tables"]["icp_scores"]["Row"];
+export type CompanyProcessingRow =
+  Database["public"]["Tables"]["company_processing"]["Row"];

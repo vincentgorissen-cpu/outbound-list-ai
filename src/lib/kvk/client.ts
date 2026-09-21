@@ -1,5 +1,6 @@
 import "server-only";
 import { kvkEnv } from "./env";
+import { fetchWithRetry } from "./fetchWithRetry";
 import type {
   KvkBasisprofiel,
   KvkSearchParams,
@@ -37,8 +38,15 @@ async function parseErrorBody(response: Response): Promise<KvkErrorBody | null> 
   }
 }
 
+/**
+ * Bij een grotere batch kan de KVK API tijdelijk een rate limit (429)
+ * of serverfout (5xx) teruggeven; dat mag niet meteen de hele rij als
+ * mislukt markeren. `fetchWithRetry` probeert het opnieuw met
+ * exponentiële backoff; échte fouten (400/401/404, …) komen ongewijzigd
+ * terug voor de bestaande foutafhandeling hieronder.
+ */
 async function kvkGet(url: URL): Promise<Response> {
-  return fetch(url, { headers: { apikey: kvkEnv.apiKey } });
+  return fetchWithRetry(() => fetch(url, { headers: { apikey: kvkEnv.apiKey } }));
 }
 
 /**

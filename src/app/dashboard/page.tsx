@@ -26,7 +26,7 @@ export default async function DashboardPage() {
         </p>
       </Link>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/dashboard/import"
           className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
@@ -36,6 +36,16 @@ export default async function DashboardPage() {
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             CSV of XLSX uploaden, kolommen koppelen en importeren.
+          </p>
+        </Link>
+
+        <Link
+          href="/dashboard/processing"
+          className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
+        >
+          <h2 className="text-sm font-medium text-slate-900">Verwerking starten</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            KVK-matching, verrijking en AI-scoring uitvoeren voor geïmporteerde bedrijven.
           </p>
         </Link>
 

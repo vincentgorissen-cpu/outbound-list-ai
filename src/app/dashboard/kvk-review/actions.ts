@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { enrichCompanyFromKvk } from "@/lib/kvk/enrichCompany";
-import { storeKvkEnrichment } from "@/lib/kvk/storeEnrichment";
+import { enrichAndStoreKvkData } from "@/lib/kvk/enrichAndStore";
+import { updateProcessingStatus } from "@/lib/processing/updateProcessingStatus";
 import type { KvkMatchCandidate } from "@/lib/kvk/types";
 
 export type ResolveMatchResult =
@@ -63,7 +63,13 @@ export async function resolveKvkMatch(
     if (error) {
       return { status: "error", message: "Kon keuze niet opslaan." };
     }
+    await updateProcessingStatus(supabase, {
+      importRowId: matchRow.import_row_id,
+      userId: user.id,
+      status: "completed",
+    });
     revalidatePath("/dashboard/kvk-review");
+    revalidatePath("/dashboard/processing");
     return { status: "success", message: "Gemarkeerd: geen kandidaat klopt." };
   }
 
@@ -87,16 +93,31 @@ export async function resolveKvkMatch(
   }
 
   try {
-    const enrichment = await enrichCompanyFromKvk(chosenKvkNummer);
-    if (enrichment) {
-      await storeKvkEnrichment(supabase, {
-        importRowId: matchRow.import_row_id,
-        userId: user.id,
-        enrichment,
-      });
-    }
-  } catch {
+    const enrichment = await enrichAndStoreKvkData(supabase, {
+      kvkNummer: chosenKvkNummer,
+      importRowId: matchRow.import_row_id,
+      userId: user.id,
+    });
+
+    await updateProcessingStatus(supabase, {
+      importRowId: matchRow.import_row_id,
+      userId: user.id,
+      status: enrichment ? "completed" : "failed",
+      errorMessage: enrichment
+        ? null
+        : `KVK-nummer "${chosenKvkNummer}" niet gevonden in het Handelsregister.`,
+    });
+  } catch (error) {
+    await updateProcessingStatus(supabase, {
+      importRowId: matchRow.import_row_id,
+      userId: user.id,
+      status: "failed",
+      errorMessage:
+        error instanceof Error ? error.message : "Onbekende fout bij het ophalen van KVK-gegevens.",
+    }).catch(() => {});
+
     revalidatePath("/dashboard/kvk-review");
+    revalidatePath("/dashboard/processing");
     return {
       status: "success",
       message:
@@ -105,5 +126,6 @@ export async function resolveKvkMatch(
   }
 
   revalidatePath("/dashboard/kvk-review");
+  revalidatePath("/dashboard/processing");
   return { status: "success", message: "Match bevestigd en verrijkt met KVK-gegevens." };
 }
