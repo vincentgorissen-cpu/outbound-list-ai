@@ -25,7 +25,11 @@ export interface CompanyResultRow {
   /** Vestigingsplaats uit de KVK-verrijking; anders de oorspronkelijk geïmporteerde plaats. */
   plaats: string | null;
   sbiActiviteit: string | null;
+  /** Ruwe SBI-code(s), los van de leesbare omschrijving. */
+  sbiCode: string | null;
   aantalMedewerkers: number | null;
+  /** Website uit de KVK-verrijking; anders de oorspronkelijk geïmporteerde website. */
+  website: string | null;
   /** Confidence van de KVK-match (0-100); null als het kvk-nummer direct was aangeleverd (geen matching nodig). */
   kvkMatchConfidence: number | null;
   kvkStatus: KvkEnrichmentStatus | null;
@@ -34,6 +38,12 @@ export interface CompanyResultRow {
   icpClassification: IcpClassification | null;
   /** Eerste item uit de door de AI teruggegeven redenen; leeg als er nog geen score is. */
   belangrijksteReden: string | null;
+  /** Alle door de AI teruggegeven redenen (volledige lijst, voor export). */
+  icpReasons: string[];
+  /** Betrouwbaarheid die de AI zelf aan de ICP-score toekent (0.0-1.0). */
+  icpConfidence: number | null;
+  /** Tijdstip waarop de KVK-gegevens voor het laatst zijn opgehaald. */
+  kvkOpgehaaldOp: string | null;
   status: CompanyPipelineStatus;
   /** True zolang een review_required/no_reliable_match-match nog niet is opgelost. */
   reviewRequired: boolean;

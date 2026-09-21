@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import { buildCompanyResultRows } from "@/lib/results/buildCompanyResults";
 import type { IcpScoreRow, KvkEnrichmentRow, KvkMatchRow } from "@/lib/types/database.types";
 
-function importRow(id: string, bedrijfsnaam: string, plaats: string | null = null) {
-  return { id, bedrijfsnaam, plaats };
+function importRow(
+  id: string,
+  bedrijfsnaam: string,
+  plaats: string | null = null,
+  website: string | null = null,
+) {
+  return { id, bedrijfsnaam, plaats, website };
 }
 
 function enrichment(overrides: Partial<KvkEnrichmentRow> & { import_row_id: string }): KvkEnrichmentRow {
@@ -195,6 +200,48 @@ describe("buildCompanyResultRows", () => {
     );
     expect(row.bedrijfsclassificatie).toBe("inactive");
     expect(row.kvkStatus).toBe("inactief");
+  });
+
+  it("voegt meerdere SBI-codes samen en valt terug op de oorspronkelijke website zonder verrijking", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme", null, "https://acme-opgegeven.nl")],
+      [enrichment({ import_row_id: "1", sbi_codes: ["2830", "4665"], website: null })],
+      [],
+      [],
+    );
+    expect(row.sbiCode).toBe("2830, 4665");
+    expect(row.website).toBe("https://acme-opgegeven.nl");
+  });
+
+  it("geeft voorrang aan de geverifieerde KVK-website boven de oorspronkelijke website", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme", null, "https://acme-opgegeven.nl")],
+      [enrichment({ import_row_id: "1", website: "https://acme.nl" })],
+      [],
+      [],
+    );
+    expect(row.website).toBe("https://acme.nl");
+  });
+
+  it("bewaart alle ICP-redenen, de AI-confidence en het laatste KVK-controlemoment", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [enrichment({ import_row_id: "1", opgehaald_op: "2026-03-05T10:00:00.000Z" })],
+      [],
+      [icpScore({ import_row_id: "1", reasons: ["Past qua sector", "Juiste omvang"], confidence: 0.75 })],
+    );
+    expect(row.icpReasons).toEqual(["Past qua sector", "Juiste omvang"]);
+    expect(row.icpConfidence).toBe(0.75);
+    expect(row.kvkOpgehaaldOp).toBe("2026-03-05T10:00:00.000Z");
+  });
+
+  it("geeft lege/nulwaarden voor de nieuwe velden als er geen verrijking of score is", () => {
+    const [row] = buildCompanyResultRows([importRow("1", "Acme")], [], [], []);
+    expect(row.sbiCode).toBeNull();
+    expect(row.website).toBeNull();
+    expect(row.icpReasons).toEqual([]);
+    expect(row.icpConfidence).toBeNull();
+    expect(row.kvkOpgehaaldOp).toBeNull();
   });
 
   it("verwerkt meerdere bedrijven onafhankelijk van elkaar in dezelfde aanroep", () => {

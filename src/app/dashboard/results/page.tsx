@@ -10,7 +10,7 @@ export default async function ResultsPage() {
 
   const { data: importRows } = await supabase
     .from("import_rows")
-    .select("id, bedrijfsnaam, plaats")
+    .select("id, bedrijfsnaam, plaats, website")
     .eq("user_id", user!.id);
 
   const ids = (importRows ?? []).map((row) => row.id);

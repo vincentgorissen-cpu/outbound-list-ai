@@ -4,20 +4,7 @@ import { useMemo, useState } from "react";
 import type { CompanyClassification } from "@/lib/classification/types";
 import type { IcpClassification, KvkEnrichmentStatus } from "@/lib/types/database.types";
 import type { CompanyPipelineStatus, CompanyResultRow } from "@/lib/results/types";
-
-const BEDRIJFSCLASSIFICATIE_LABEL: Record<CompanyClassification, string> = {
-  legal_entity: "Rechtspersoon",
-  natural_person_business: "Eenmanszaak",
-  partnership: "Samenwerkingsverband",
-  inactive: "Inactief",
-  unknown: "Onbekend",
-};
-
-const ICP_LABEL: Record<IcpClassification, string> = {
-  high_fit: "Goede match",
-  medium_fit: "Matige match",
-  low_fit: "Zwakke match",
-};
+import { BEDRIJFSCLASSIFICATIE_LABEL, ICP_LABEL } from "@/lib/results/labels";
 
 const STATUS_LABEL: Record<CompanyPipelineStatus, string> = {
   nieuw: "Nieuw",
@@ -74,9 +61,16 @@ function formatValue(value: string | number | null): string {
   return String(value);
 }
 
+type ExportFormat = "csv" | "xlsx";
+type ExportScope = "all" | "filtered" | "selected";
+
 export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [sort, setSort] = useState<SortValue>("icpScore-desc");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const rechtsvormOpties = useMemo(() => {
     const values = new Set(rows.map((row) => row.rechtsvorm).filter((v): v is string => v !== null));
@@ -148,6 +142,78 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
     });
     return copy;
   }, [filteredRows, sort]);
+
+  const allVisibleSelected =
+    sortedRows.length > 0 && sortedRows.every((row) => selectedIds.has(row.importRowId));
+
+  function toggleRow(importRowId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(importRowId)) next.delete(importRowId);
+      else next.add(importRowId);
+      return next;
+    });
+  }
+
+  function toggleAllVisible() {
+    setSelectedIds((current) => {
+      if (allVisibleSelected) {
+        const next = new Set(current);
+        for (const row of sortedRows) next.delete(row.importRowId);
+        return next;
+      }
+      const next = new Set(current);
+      for (const row of sortedRows) next.add(row.importRowId);
+      return next;
+    });
+  }
+
+  async function handleExport(scope: ExportScope) {
+    const importRowIds =
+      scope === "all"
+        ? rows.map((row) => row.importRowId)
+        : scope === "filtered"
+          ? sortedRows.map((row) => row.importRowId)
+          : sortedRows
+              .filter((row) => selectedIds.has(row.importRowId))
+              .map((row) => row.importRowId);
+
+    if (importRowIds.length === 0) {
+      setExportError("Geen bedrijven om te exporteren.");
+      return;
+    }
+
+    setExportError(null);
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ importRowIds, format: exportFormat }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Export mislukt.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const filenameMatch = response.headers
+        .get("Content-Disposition")
+        ?.match(/filename="(.+)"/);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filenameMatch?.[1] ?? `resultaten.${exportFormat}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError("Export mislukt. Probeer het opnieuw.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   const selectClass = "rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-900";
 
@@ -307,14 +373,62 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
         </button>
       </div>
 
-      <p className="text-sm text-slate-500">
-        {sortedRows.length} van {rows.length} bedrijven
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          {sortedRows.length} van {rows.length} bedrijven
+          {selectedIds.size > 0 && ` · ${selectedIds.size} geselecteerd`}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+          <select
+            className={selectClass}
+            value={exportFormat}
+            onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
+          >
+            <option value="xlsx">Excel (.xlsx)</option>
+            <option value="csv">CSV (.csv)</option>
+          </select>
+          <button
+            type="button"
+            disabled={isExporting}
+            onClick={() => handleExport("all")}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:border-slate-400 disabled:opacity-50"
+          >
+            Alles exporteren
+          </button>
+          <button
+            type="button"
+            disabled={isExporting}
+            onClick={() => handleExport("filtered")}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:border-slate-400 disabled:opacity-50"
+          >
+            Gefilterde resultaten exporteren
+          </button>
+          <button
+            type="button"
+            disabled={isExporting || selectedIds.size === 0}
+            onClick={() => handleExport("selected")}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:border-slate-400 disabled:opacity-50"
+          >
+            Selectie exporteren ({selectedIds.size})
+          </button>
+        </div>
+      </div>
+
+      {exportError && <p className="text-sm text-red-600">{exportError}</p>}
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
+              <th className="p-2">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleAllVisible}
+                  aria-label="Alle zichtbare rijen selecteren"
+                />
+              </th>
               <th className="p-2">Originele naam</th>
               <th className="p-2">Officiële KVK-naam</th>
               <th className="p-2">KVK-nummer</th>
@@ -333,6 +447,14 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
           <tbody className="divide-y divide-slate-100">
             {sortedRows.map((row) => (
               <tr key={row.importRowId}>
+                <td className="p-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(row.importRowId)}
+                    onChange={() => toggleRow(row.importRowId)}
+                    aria-label={`${row.origineleBedrijfsnaam ?? "Bedrijf"} selecteren`}
+                  />
+                </td>
                 <td className="p-2 text-slate-900">{formatValue(row.origineleBedrijfsnaam)}</td>
                 <td className="p-2 text-slate-600">{formatValue(row.officieleNaam)}</td>
                 <td className="p-2 text-slate-600">{formatValue(row.kvkNummer)}</td>

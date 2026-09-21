@@ -7,7 +7,7 @@ import type {
 } from "@/lib/types/database.types";
 import type { CompanyPipelineStatus, CompanyResultRow } from "./types";
 
-type ImportRowForResults = Pick<ImportRecordRow, "id" | "bedrijfsnaam" | "plaats">;
+type ImportRowForResults = Pick<ImportRecordRow, "id" | "bedrijfsnaam" | "plaats" | "website">;
 
 function isReviewRequired(match: KvkMatchRow | undefined): boolean {
   if (!match) return false;
@@ -29,7 +29,7 @@ function deriveStatus(
   return "nieuw";
 }
 
-function joinSbiOmschrijvingen(value: unknown): string | null {
+function joinStringArray(value: unknown): string | null {
   if (!Array.isArray(value) || value.length === 0) return null;
   return value.filter((item): item is string => typeof item === "string").join(", ") || null;
 }
@@ -38,6 +38,11 @@ function firstReason(value: unknown): string | null {
   if (!Array.isArray(value) || value.length === 0) return null;
   const first = value[0];
   return typeof first === "string" && first.trim() !== "" ? first : null;
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 /**
@@ -69,8 +74,10 @@ export function buildCompanyResultRows(
       kvkNummer: enrichment?.kvk_nummer ?? null,
       rechtsvorm: enrichment?.rechtsvorm ?? null,
       plaats: enrichment?.vestigingsplaats ?? row.plaats ?? null,
-      sbiActiviteit: joinSbiOmschrijvingen(enrichment?.sbi_omschrijvingen),
+      sbiActiviteit: joinStringArray(enrichment?.sbi_omschrijvingen),
+      sbiCode: joinStringArray(enrichment?.sbi_codes),
       aantalMedewerkers: enrichment?.aantal_werkzame_personen ?? null,
+      website: enrichment?.website ?? row.website ?? null,
       kvkMatchConfidence: match?.confidence ?? null,
       kvkStatus: enrichment?.status ?? null,
       bedrijfsclassificatie: classifyCompany({
@@ -80,6 +87,9 @@ export function buildCompanyResultRows(
       icpScore: icp?.score ?? null,
       icpClassification: icp?.classification ?? null,
       belangrijksteReden: firstReason(icp?.reasons),
+      icpReasons: stringArray(icp?.reasons),
+      icpConfidence: icp?.confidence ?? null,
+      kvkOpgehaaldOp: enrichment?.opgehaald_op ?? null,
       status: deriveStatus(enrichment, match, icp, reviewRequired),
       reviewRequired,
     };
