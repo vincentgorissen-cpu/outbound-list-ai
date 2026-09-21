@@ -81,8 +81,9 @@ export function IcpTestRunner() {
           <p>{previewState.excludedByPrefilter} daarvan worden uitgesloten door de voorfilters (geen AI-aanroep).</p>
           <p>{previewState.eligibleForAi} bedrijven komen in aanmerking voor AI-scoring.</p>
           <p className="font-medium text-slate-900">
-            Deze run verwerkt {previewState.willProcessNow} bedrijf
-            {previewState.willProcessNow === 1 ? "" : "en"} — geschat {previewState.willProcessNow} AI-aanroep
+            Deze run verwerkt {previewState.willProcessNow}{" "}
+            {previewState.willProcessNow === 1 ? "bedrijf" : "bedrijven"} — geschat{" "}
+            {previewState.willProcessNow} AI-aanroep
             {previewState.willProcessNow === 1 ? "" : "en"} (max. {previewState.batchLimit} per run).
           </p>
           {previewStale && (
