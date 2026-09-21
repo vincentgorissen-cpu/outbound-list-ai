@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { parsePrefilterConfig } from "@/lib/icp/prefilter/parseConfig";
 import { IcpProfileForm } from "./IcpProfileForm";
+import { IcpPrefilterForm } from "./IcpPrefilterForm";
 import { IcpTestRunner } from "./IcpTestRunner";
 
 const CLASSIFICATION_LABEL: Record<string, string> = {
@@ -11,6 +13,7 @@ const CLASSIFICATION_LABEL: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   scored: "Gescoord",
   ai_processing_failed: "AI-verwerking mislukt",
+  excluded_by_prefilter: "Uitgesloten door voorfilters",
 };
 
 export default async function IcpPage() {
@@ -21,13 +24,17 @@ export default async function IcpPage() {
 
   const { data: profile } = await supabase
     .from("icp_profiles")
-    .select("description")
+    .select("description, prefilter_config")
     .eq("user_id", user!.id)
     .maybeSingle();
 
+  const prefilterConfig = parsePrefilterConfig(profile?.prefilter_config ?? null);
+
   const { data: scores } = await supabase
     .from("icp_scores")
-    .select("id, import_row_id, status, score, classification, reasons, concerns, error_message, scored_at")
+    .select(
+      "id, import_row_id, status, score, classification, reasons, concerns, error_message, prefilter_reason, scored_at",
+    )
     .order("scored_at", { ascending: false })
     .limit(20);
 
@@ -50,6 +57,10 @@ export default async function IcpPage() {
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <IcpProfileForm initialDescription={profile?.description ?? ""} />
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <IcpPrefilterForm initialConfig={prefilterConfig} />
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -82,9 +93,11 @@ export default async function IcpPage() {
                       {row.classification ? CLASSIFICATION_LABEL[row.classification] : "—"}
                     </td>
                     <td className="p-2 text-slate-600">
-                      {row.status === "ai_processing_failed"
-                        ? row.error_message
-                        : (row.reasons as string[] | null)?.join("; ") || "—"}
+                      {row.status === "excluded_by_prefilter"
+                        ? row.prefilter_reason
+                        : row.status === "ai_processing_failed"
+                          ? row.error_message
+                          : (row.reasons as string[] | null)?.join("; ") || "—"}
                     </td>
                   </tr>
                 ))}

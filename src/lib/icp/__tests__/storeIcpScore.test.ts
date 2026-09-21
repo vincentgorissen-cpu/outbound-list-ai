@@ -61,6 +61,55 @@ describe("storeIcpScore", () => {
     });
   });
 
+  it("slaat een deterministische uitsluiting op als excluded_by_prefilter, met de reden en zonder AI-velden", async () => {
+    const { supabase, upsert } = buildSupabaseMock({ error: null });
+
+    await storeIcpScore(supabase, {
+      importRowId: "row-3",
+      userId: "user-1",
+      result: {
+        status: "excluded_by_prefilter",
+        reason: "Status \"inactief\" is uitgesloten door de voorfilters.",
+      },
+    });
+
+    const [payload] = upsert.mock.calls[0];
+    expect(payload).toMatchObject({
+      status: "excluded_by_prefilter",
+      score: null,
+      classification: null,
+      confidence: null,
+      error_message: null,
+      prefilter_status: "excluded",
+      prefilter_reason: 'Status "inactief" is uitgesloten door de voorfilters.',
+    });
+  });
+
+  it("markeert geslaagde en mislukte AI-aanroepen als 'passed' door de voorfilters", async () => {
+    const { supabase, upsert } = buildSupabaseMock({ error: null });
+
+    await storeIcpScore(supabase, {
+      importRowId: "row-4",
+      userId: "user-1",
+      result: {
+        status: "scored",
+        score: 70,
+        classification: "medium_fit",
+        reasons: [],
+        concerns: [],
+        confidence: 0.5,
+      },
+    });
+    expect(upsert.mock.calls[0][0]).toMatchObject({ prefilter_status: "passed", prefilter_reason: null });
+
+    await storeIcpScore(supabase, {
+      importRowId: "row-5",
+      userId: "user-1",
+      result: { status: "ai_processing_failed", errorMessage: "timeout" },
+    });
+    expect(upsert.mock.calls[1][0]).toMatchObject({ prefilter_status: "passed", prefilter_reason: null });
+  });
+
   it("gooit een duidelijke fout als Supabase een fout teruggeeft", async () => {
     const { supabase } = buildSupabaseMock({ error: { message: "kaboom" } });
 

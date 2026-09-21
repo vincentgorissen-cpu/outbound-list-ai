@@ -15,8 +15,9 @@ export type ImportStatus = "pending_mapping" | "completed" | "failed";
 export type KvkEnrichmentStatus = "actief" | "inactief";
 export type KvkMatchStatus = "high_confidence" | "review_required" | "no_reliable_match";
 export type KvkMatchResolution = "confirmed" | "rejected";
-export type IcpScoreStatus = "scored" | "ai_processing_failed";
+export type IcpScoreStatus = "scored" | "ai_processing_failed" | "excluded_by_prefilter";
 export type IcpClassification = "high_fit" | "medium_fit" | "low_fit";
+export type IcpPrefilterStatus = "passed" | "excluded";
 
 export interface Database {
   public: {
@@ -251,6 +252,7 @@ export interface Database {
           id: string;
           user_id: string;
           description: string;
+          prefilter_config: Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -258,6 +260,7 @@ export interface Database {
           id?: string;
           user_id: string;
           description: string;
+          prefilter_config?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -265,6 +268,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           description?: string;
+          prefilter_config?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -282,6 +286,8 @@ export interface Database {
           concerns: Json;
           confidence: number | null;
           error_message: string | null;
+          prefilter_status: IcpPrefilterStatus;
+          prefilter_reason: string | null;
           scored_at: string;
           created_at: string;
           updated_at: string;
@@ -297,6 +303,8 @@ export interface Database {
           concerns?: Json;
           confidence?: number | null;
           error_message?: string | null;
+          prefilter_status?: IcpPrefilterStatus;
+          prefilter_reason?: string | null;
           scored_at: string;
           created_at?: string;
           updated_at?: string;
@@ -312,6 +320,8 @@ export interface Database {
           concerns?: Json;
           confidence?: number | null;
           error_message?: string | null;
+          prefilter_status?: IcpPrefilterStatus;
+          prefilter_reason?: string | null;
           scored_at?: string;
           created_at?: string;
           updated_at?: string;

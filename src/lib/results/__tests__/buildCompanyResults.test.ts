@@ -61,6 +61,8 @@ function icpScore(overrides: Partial<IcpScoreRow> & { import_row_id: string }): 
     concerns: [],
     confidence: 0.9,
     error_message: null,
+    prefilter_status: "passed",
+    prefilter_reason: null,
     scored_at: "2026-01-01T00:00:00.000Z",
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
