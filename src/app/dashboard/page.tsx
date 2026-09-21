@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
-const ROADMAP = [
-  {
-    title: "AI-fit scoring",
-    description: "Bedrijven laten scoren op basis van je ideale klantprofiel.",
-  },
-] as const;
-
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -20,8 +13,7 @@ export default async function DashboardPage() {
         Welkom{user?.email ? `, ${user.email}` : ""}
       </h1>
       <p className="mt-1 text-sm text-slate-500">
-        Begin met het importeren van een bedrijvenlijst. AI-scoring volgt in
-        een volgende stap.
+        Begin met het importeren van een bedrijvenlijst.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -50,17 +42,15 @@ export default async function DashboardPage() {
           </p>
         </Link>
 
-        {ROADMAP.map((item) => (
-          <div
-            key={item.title}
-            className="rounded-lg border border-dashed border-slate-300 bg-white p-4"
-          >
-            <h2 className="text-sm font-medium text-slate-900">
-              {item.title}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">{item.description}</p>
-          </div>
-        ))}
+        <Link
+          href="/dashboard/icp"
+          className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
+        >
+          <h2 className="text-sm font-medium text-slate-900">AI-fit scoring</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Ideaal klantprofiel beschrijven en bedrijven laten scoren.
+          </p>
+        </Link>
       </div>
     </div>
   );

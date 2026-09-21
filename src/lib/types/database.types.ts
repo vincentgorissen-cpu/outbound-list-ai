@@ -15,6 +15,8 @@ export type ImportStatus = "pending_mapping" | "completed" | "failed";
 export type KvkEnrichmentStatus = "actief" | "inactief";
 export type KvkMatchStatus = "high_confidence" | "review_required" | "no_reliable_match";
 export type KvkMatchResolution = "confirmed" | "rejected";
+export type IcpScoreStatus = "scored" | "ai_processing_failed";
+export type IcpClassification = "high_fit" | "medium_fit" | "low_fit";
 
 export interface Database {
   public: {
@@ -239,6 +241,78 @@ export interface Database {
           resolution?: KvkMatchResolution | null;
           resolved_kvk_nummer?: string | null;
           resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      icp_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          description: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          description: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          description?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      icp_scores: {
+        Row: {
+          id: string;
+          import_row_id: string;
+          user_id: string;
+          status: IcpScoreStatus;
+          score: number | null;
+          classification: IcpClassification | null;
+          reasons: Json;
+          concerns: Json;
+          confidence: number | null;
+          error_message: string | null;
+          scored_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_row_id: string;
+          user_id: string;
+          status: IcpScoreStatus;
+          score?: number | null;
+          classification?: IcpClassification | null;
+          reasons?: Json;
+          concerns?: Json;
+          confidence?: number | null;
+          error_message?: string | null;
+          scored_at: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_row_id?: string;
+          user_id?: string;
+          status?: IcpScoreStatus;
+          score?: number | null;
+          classification?: IcpClassification | null;
+          reasons?: Json;
+          concerns?: Json;
+          confidence?: number | null;
+          error_message?: string | null;
+          scored_at?: string;
           created_at?: string;
           updated_at?: string;
         };
