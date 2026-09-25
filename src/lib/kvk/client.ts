@@ -1,6 +1,6 @@
 import "server-only";
 import { kvkEnv } from "./env";
-import { fetchWithRetry } from "./fetchWithRetry";
+import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
 import type {
   KvkBasisprofiel,
   KvkSearchParams,

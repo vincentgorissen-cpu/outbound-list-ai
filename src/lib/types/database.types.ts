@@ -24,6 +24,18 @@ export type CompanyProcessingStatus =
   | "completed"
   | "review_required"
   | "failed";
+export type WebsiteStatus =
+  | "pending"
+  | "accessible"
+  | "no_url"
+  | "dns_failed"
+  | "timeout"
+  | "blocked"
+  | "robots_disallowed"
+  | "http_error"
+  | "insufficient_content"
+  | "unsupported_site"
+  | "failed";
 
 export interface Database {
   public: {
@@ -370,6 +382,72 @@ export interface Database {
         };
         Relationships: [];
       };
+      website_enrichments: {
+        Row: {
+          id: string;
+          import_row_id: string;
+          user_id: string;
+          website_url: string | null;
+          website_status: WebsiteStatus;
+          website_checked_at: string | null;
+          error_message: string | null;
+          extracted_page_urls: Json;
+          raw_extracted_text: string | null;
+          company_description: string | null;
+          products_services: Json;
+          industries_served: Json;
+          target_markets: Json;
+          business_model: string | null;
+          operational_signals: Json;
+          company_locations: Json | null;
+          source_confidence: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_row_id: string;
+          user_id: string;
+          website_url?: string | null;
+          website_status?: WebsiteStatus;
+          website_checked_at?: string | null;
+          error_message?: string | null;
+          extracted_page_urls?: Json;
+          raw_extracted_text?: string | null;
+          company_description?: string | null;
+          products_services?: Json;
+          industries_served?: Json;
+          target_markets?: Json;
+          business_model?: string | null;
+          operational_signals?: Json;
+          company_locations?: Json | null;
+          source_confidence?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          import_row_id?: string;
+          user_id?: string;
+          website_url?: string | null;
+          website_status?: WebsiteStatus;
+          website_checked_at?: string | null;
+          error_message?: string | null;
+          extracted_page_urls?: Json;
+          raw_extracted_text?: string | null;
+          company_description?: string | null;
+          products_services?: Json;
+          industries_served?: Json;
+          target_markets?: Json;
+          business_model?: string | null;
+          operational_signals?: Json;
+          company_locations?: Json | null;
+          source_confidence?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -385,5 +463,7 @@ export type KvkEnrichmentRow =
   Database["public"]["Tables"]["kvk_enrichments"]["Row"];
 export type KvkMatchRow = Database["public"]["Tables"]["kvk_matches"]["Row"];
 export type IcpScoreRow = Database["public"]["Tables"]["icp_scores"]["Row"];
+export type WebsiteEnrichmentRow =
+  Database["public"]["Tables"]["website_enrichments"]["Row"];
 export type CompanyProcessingRow =
   Database["public"]["Tables"]["company_processing"]["Row"];

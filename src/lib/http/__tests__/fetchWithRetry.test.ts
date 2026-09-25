@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchWithRetry } from "@/lib/kvk/fetchWithRetry";
+import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
 
 function response(status: number, headers: Record<string, string> = {}): Response {
   return {
