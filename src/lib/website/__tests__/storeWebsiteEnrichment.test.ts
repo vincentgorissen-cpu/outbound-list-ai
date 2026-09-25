@@ -20,8 +20,23 @@ function result(overrides: Partial<WebsiteIntelligenceResult> = {}): WebsiteInte
     status: "accessible",
     normalizedUrl: "https://bedrijf.nl/",
     checkedAt: "2026-01-01T00:00:00.000Z",
-    fetchedPageUrls: ["https://bedrijf.nl/", "https://bedrijf.nl/over-ons"],
-    rawExtractedText: "Wij maken machines.",
+    pages: [
+      {
+        pageUrl: "https://bedrijf.nl/",
+        pageType: "homepage",
+        cleanedText: "Wij maken machines.",
+        characterCount: 20,
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        pageUrl: "https://bedrijf.nl/over-ons",
+        pageType: "about",
+        cleanedText: "Opgericht in 2001.",
+        characterCount: 19,
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
+    combinedCleanedText: "Wij maken machines.\nOpgericht in 2001.",
     sourceConfidence: 0.67,
     errorMessage: null,
     ...overrides,
@@ -41,8 +56,23 @@ describe("storeWebsiteEnrichment", () => {
       user_id: "user-1",
       website_url: "https://bedrijf.nl/",
       website_status: "accessible",
-      extracted_page_urls: ["https://bedrijf.nl/", "https://bedrijf.nl/over-ons"],
-      raw_extracted_text: "Wij maken machines.",
+      cleaned_text_per_page: [
+        {
+          page_url: "https://bedrijf.nl/",
+          page_type: "homepage",
+          cleaned_text: "Wij maken machines.",
+          character_count: 20,
+          extracted_at: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          page_url: "https://bedrijf.nl/over-ons",
+          page_type: "about",
+          cleaned_text: "Opgericht in 2001.",
+          character_count: 19,
+          extracted_at: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      combined_cleaned_text: "Wij maken machines.\nOpgericht in 2001.",
       source_confidence: 0.67,
     });
     expect(payload).not.toHaveProperty("company_description");
@@ -50,14 +80,15 @@ describe("storeWebsiteEnrichment", () => {
     expect(options).toEqual({ onConflict: "import_row_id" });
   });
 
-  it("slaat lege rawExtractedText op als null in plaats van een lege string", async () => {
+  it("slaat lege combinedCleanedText op als null in plaats van een lege string", async () => {
     const { upsert, supabase } = buildSupabaseMock();
     await storeWebsiteEnrichment(supabase, {
       importRowId: "row-1",
       userId: "user-1",
-      result: result({ status: "no_url", normalizedUrl: null, rawExtractedText: "", fetchedPageUrls: [] }),
+      result: result({ status: "no_url", normalizedUrl: null, combinedCleanedText: "", pages: [] }),
     });
-    expect(upsert.mock.calls[0][0].raw_extracted_text).toBeNull();
+    expect(upsert.mock.calls[0][0].combined_cleaned_text).toBeNull();
+    expect(upsert.mock.calls[0][0].cleaned_text_per_page).toEqual([]);
   });
 
   it("gooit een duidelijke fout als Supabase een fout teruggeeft", async () => {
@@ -101,8 +132,8 @@ function makeRow(overrides: Partial<WebsiteEnrichmentRow>): WebsiteEnrichmentRow
     website_status: "accessible",
     website_checked_at: new Date().toISOString(),
     error_message: null,
-    extracted_page_urls: [],
-    raw_extracted_text: "tekst",
+    cleaned_text_per_page: [],
+    combined_cleaned_text: "tekst",
     company_description: null,
     products_services: [],
     industries_served: [],

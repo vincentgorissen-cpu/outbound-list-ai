@@ -76,9 +76,12 @@ describe("analyzeWebsite", () => {
     const result = await analyzeWebsite("https://bedrijf.nl", { fetchImpl, dnsLookup: publicLookup });
 
     expect(result.status).toBe("accessible");
-    expect(result.fetchedPageUrls).toEqual(["https://bedrijf.nl/", "https://bedrijf.nl/over-ons"]);
-    expect(result.rawExtractedText).toContain("machinebouwer");
-    expect(result.rawExtractedText).toContain("Opgericht in 2001");
+    expect(result.pages.map((p) => p.pageUrl)).toEqual(["https://bedrijf.nl/", "https://bedrijf.nl/over-ons"]);
+    expect(result.pages.map((p) => p.pageType)).toEqual(["homepage", "about"]);
+    expect(result.pages.every((p) => p.characterCount === p.cleanedText.length)).toBe(true);
+    expect(result.pages.every((p) => p.extractedAt === result.checkedAt)).toBe(true);
+    expect(result.combinedCleanedText).toContain("machinebouwer");
+    expect(result.combinedCleanedText).toContain("Opgericht in 2001");
   });
 
   it("voegt https:// toe wanneer de invoer geen protocol heeft", async () => {
@@ -103,7 +106,7 @@ describe("analyzeWebsite", () => {
     const result = await analyzeWebsite("https://bedrijf.nl", { fetchImpl, dnsLookup: publicLookup });
 
     expect(result.status).toBe("accessible");
-    expect(result.fetchedPageUrls).toEqual(["https://www.bedrijf.nl/"]);
+    expect(result.pages.map((p) => p.pageUrl)).toEqual(["https://www.bedrijf.nl/"]);
   });
 
   it("geeft http_error terug bij een 404 op de homepage", async () => {
@@ -199,7 +202,7 @@ describe("analyzeWebsite", () => {
     const result = await analyzeWebsite("https://bedrijf.nl", { fetchImpl, dnsLookup: publicLookup });
 
     expect(result.status).toBe("insufficient_content");
-    expect(result.fetchedPageUrls).toEqual(["https://bedrijf.nl/"]);
+    expect(result.pages.map((p) => p.pageUrl)).toEqual(["https://bedrijf.nl/"]);
   });
 
   it("haalt bij zeer veel interne links nooit meer dan het maximum aantal pagina's op", async () => {
@@ -221,7 +224,7 @@ describe("analyzeWebsite", () => {
 
     expect(result.status).toBe("accessible");
     // Homepage + maximaal 4 andere pagina's = 5 in totaal, ondanks 200+ links op de homepage.
-    expect(result.fetchedPageUrls).toHaveLength(5);
+    expect(result.pages).toHaveLength(5);
     // robots.txt + homepage + 4 sub-pagina's = 6 fetch-aanroepen, nooit 200+.
     expect(fetchImpl).toHaveBeenCalledTimes(6);
   });
@@ -238,6 +241,34 @@ describe("analyzeWebsite", () => {
     const result = await analyzeWebsite("https://bedrijf.nl", { fetchImpl, dnsLookup: publicLookup });
 
     expect(result.status).toBe("accessible");
-    expect(result.fetchedPageUrls).toEqual(["https://bedrijf.nl/", "https://bedrijf.nl/diensten"]);
+    expect(result.pages.map((p) => p.pageUrl)).toEqual(["https://bedrijf.nl/", "https://bedrijf.nl/diensten"]);
+  });
+
+  it("dedupliceert een herhaalde slogan over pagina's heen en verwijdert persoonsgegevens", async () => {
+    const slogan = "Dé specialist in machinebouw sinds 1990.";
+    const fetchImpl = routedFetch({
+      "https://bedrijf.nl/robots.txt": () => ROBOTS_ALLOW_ALL,
+      "https://bedrijf.nl/": () =>
+        htmlBody(
+          buildHomepage(
+            `<p>${slogan}</p><p>${GOOD_CONTENT}</p><a href="/over-ons">Over ons</a>`,
+          ),
+        ),
+      "https://bedrijf.nl/over-ons": () =>
+        htmlBody(
+          buildHomepage(
+            `<p>${slogan}</p><p>Neem contact op met dhr. Jan Jansen via 06-12345678 of jan@bedrijf.nl.</p>`,
+          ),
+        ),
+    });
+
+    const result = await analyzeWebsite("https://bedrijf.nl", { fetchImpl, dnsLookup: publicLookup });
+
+    expect(result.status).toBe("accessible");
+    const sloganOccurrences = result.combinedCleanedText.split(slogan).length - 1;
+    expect(sloganOccurrences).toBe(1);
+    expect(result.combinedCleanedText).not.toContain("Jan Jansen");
+    expect(result.combinedCleanedText).not.toContain("06-12345678");
+    expect(result.combinedCleanedText).not.toContain("jan@bedrijf.nl");
   });
 });

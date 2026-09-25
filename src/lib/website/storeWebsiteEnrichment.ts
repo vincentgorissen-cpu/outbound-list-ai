@@ -24,6 +24,14 @@ export async function storeWebsiteEnrichment(
   supabase: SupabaseClient<Database>,
   { importRowId, userId, result }: StoreWebsiteEnrichmentParams,
 ): Promise<void> {
+  const cleanedTextPerPage = result.pages.map((page) => ({
+    page_url: page.pageUrl,
+    page_type: page.pageType,
+    cleaned_text: page.cleanedText,
+    character_count: page.characterCount,
+    extracted_at: page.extractedAt,
+  }));
+
   const { error } = await supabase.from("website_enrichments").upsert(
     {
       import_row_id: importRowId,
@@ -32,8 +40,8 @@ export async function storeWebsiteEnrichment(
       website_status: result.status,
       website_checked_at: result.checkedAt,
       error_message: result.errorMessage,
-      extracted_page_urls: result.fetchedPageUrls as unknown as Json,
-      raw_extracted_text: result.rawExtractedText || null,
+      cleaned_text_per_page: cleanedTextPerPage as unknown as Json,
+      combined_cleaned_text: result.combinedCleanedText || null,
       source_confidence: result.sourceConfidence,
     },
     { onConflict: "import_row_id" },

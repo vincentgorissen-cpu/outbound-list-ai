@@ -391,8 +391,8 @@ export interface Database {
           website_status: WebsiteStatus;
           website_checked_at: string | null;
           error_message: string | null;
-          extracted_page_urls: Json;
-          raw_extracted_text: string | null;
+          cleaned_text_per_page: Json;
+          combined_cleaned_text: string | null;
           company_description: string | null;
           products_services: Json;
           industries_served: Json;
@@ -412,8 +412,8 @@ export interface Database {
           website_status?: WebsiteStatus;
           website_checked_at?: string | null;
           error_message?: string | null;
-          extracted_page_urls?: Json;
-          raw_extracted_text?: string | null;
+          cleaned_text_per_page?: Json;
+          combined_cleaned_text?: string | null;
           company_description?: string | null;
           products_services?: Json;
           industries_served?: Json;
@@ -433,8 +433,8 @@ export interface Database {
           website_status?: WebsiteStatus;
           website_checked_at?: string | null;
           error_message?: string | null;
-          extracted_page_urls?: Json;
-          raw_extracted_text?: string | null;
+          cleaned_text_per_page?: Json;
+          combined_cleaned_text?: string | null;
           company_description?: string | null;
           products_services?: Json;
           industries_served?: Json;
