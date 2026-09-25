@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { enrichAndStoreWebsiteData } from "@/lib/website/enrichAndStoreWebsiteData";
+import { extractAndStoreCompanyIntelligence } from "@/lib/website/extractAndStoreCompanyIntelligence";
 import { runIcpForCompany } from "@/lib/icp/runIcpForCompany";
 import type { IcpPrefilterConfig } from "@/lib/icp/prefilter/types";
 import type { Database } from "@/lib/types/database.types";
@@ -28,6 +29,7 @@ export interface ProcessCompanyParams {
 
 export interface ProcessCompanyDeps {
   enrichAndStoreWebsiteData?: typeof enrichAndStoreWebsiteData;
+  extractAndStoreCompanyIntelligence?: typeof extractAndStoreCompanyIntelligence;
   runIcpForCompany?: typeof runIcpForCompany;
 }
 
@@ -37,8 +39,10 @@ export type ProcessCompanyOutcome = { status: "completed" } | { status: "failed"
  * Voert de volledige end-to-end verwerking uit voor één geïmporteerd
  * bedrijf: website-informatie ophalen (indien een URL bekend is —
  * `WebsiteIntelligenceService`, met hergebruik van een verse eerdere
- * verrijking) en — indien een ICP-profiel is ingesteld — AI ICP-scoren op
- * basis van de upload-gegevens plus (indien beschikbaar) de opgeschoonde
+ * verrijking), die tekst (best-effort, nooit blokkerend) omzetten naar
+ * gestructureerde company intelligence via `extractAndStoreCompanyIntelligence`,
+ * en — indien een ICP-profiel is ingesteld — AI ICP-scoren op basis van
+ * de upload-gegevens plus (indien beschikbaar) de opgeschoonde
  * websitetekst.
  *
  * KVK wordt bewust niet meer gebruikt als databron (te kostbaar voor dit
@@ -56,6 +60,8 @@ export async function processCompany(
   deps: ProcessCompanyDeps = {},
 ): Promise<ProcessCompanyOutcome> {
   const doEnrichAndStoreWebsite = deps.enrichAndStoreWebsiteData ?? enrichAndStoreWebsiteData;
+  const doExtractAndStoreCompanyIntelligence =
+    deps.extractAndStoreCompanyIntelligence ?? extractAndStoreCompanyIntelligence;
   const doRunIcpForCompany = deps.runIcpForCompany ?? runIcpForCompany;
 
   const bedrijfsnaam = importRow.bedrijfsnaam?.trim();
@@ -75,6 +81,19 @@ export async function processCompany(
       status: "failed",
       message: error instanceof Error ? error.message : "Onbekende fout bij website-verrijking.",
     };
+  }
+
+  // Best-effort: een mislukte AI-extractie (of een infrastructuurfout
+  // daarbinnen) markeert alleen `extraction_failed` op de website-rij en
+  // blokkeert de rest van de verwerking van dit bedrijf nooit.
+  try {
+    await doExtractAndStoreCompanyIntelligence(supabase, {
+      importRowId: importRow.id,
+      userId,
+      pages: website.pages,
+    });
+  } catch {
+    // Genegeerd — zie hierboven.
   }
 
   if (icpContext) {

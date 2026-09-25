@@ -36,6 +36,7 @@ export type WebsiteStatus =
   | "insufficient_content"
   | "unsupported_site"
   | "failed";
+export type ExtractionStatus = "not_attempted" | "extracted" | "extraction_failed";
 
 export interface Database {
   public: {
@@ -401,6 +402,10 @@ export interface Database {
           operational_signals: Json;
           company_locations: Json | null;
           source_confidence: number | null;
+          extraction_status: ExtractionStatus;
+          extraction_confidence: number | null;
+          evidence: Json;
+          extracted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -422,6 +427,10 @@ export interface Database {
           operational_signals?: Json;
           company_locations?: Json | null;
           source_confidence?: number | null;
+          extraction_status?: ExtractionStatus;
+          extraction_confidence?: number | null;
+          evidence?: Json;
+          extracted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -443,6 +452,10 @@ export interface Database {
           operational_signals?: Json;
           company_locations?: Json | null;
           source_confidence?: number | null;
+          extraction_status?: ExtractionStatus;
+          extraction_confidence?: number | null;
+          evidence?: Json;
+          extracted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

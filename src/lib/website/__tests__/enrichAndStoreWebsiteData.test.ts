@@ -14,7 +14,9 @@ function makeRow(overrides: Partial<WebsiteEnrichmentRow> = {}): WebsiteEnrichme
     website_status: "accessible",
     website_checked_at: new Date().toISOString(),
     error_message: null,
-    cleaned_text_per_page: [],
+    cleaned_text_per_page: [
+      { page_url: "https://bedrijf.nl/", page_type: "homepage", cleaned_text: "bestaande tekst", character_count: 15, extracted_at: "2026-01-01T00:00:00.000Z" },
+    ],
     combined_cleaned_text: "bestaande tekst",
     company_description: null,
     products_services: [],
@@ -24,6 +26,10 @@ function makeRow(overrides: Partial<WebsiteEnrichmentRow> = {}): WebsiteEnrichme
     operational_signals: [],
     company_locations: null,
     source_confidence: 1,
+    extraction_status: "not_attempted",
+    extraction_confidence: null,
+    evidence: [],
+    extracted_at: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,
@@ -35,7 +41,15 @@ function analyzeResult(overrides: Partial<WebsiteIntelligenceResult> = {}): Webs
     status: "accessible",
     normalizedUrl: "https://bedrijf.nl/",
     checkedAt: "2026-01-01T00:00:00.000Z",
-    pages: [],
+    pages: [
+      {
+        pageUrl: "https://bedrijf.nl/",
+        pageType: "homepage",
+        cleanedText: "Wij maken machines.",
+        characterCount: 20,
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
     combinedCleanedText: "Wij maken machines.",
     sourceConfidence: 0.5,
     errorMessage: null,
@@ -64,6 +78,7 @@ describe("enrichAndStoreWebsiteData", () => {
       status: "accessible",
       combinedCleanedText: "bestaande tekst",
       sourceConfidence: 1,
+      pages: [{ pageUrl: "https://bedrijf.nl/", pageType: "homepage", cleanedText: "bestaande tekst" }],
     });
   });
 
@@ -88,6 +103,7 @@ describe("enrichAndStoreWebsiteData", () => {
       status: "accessible",
       combinedCleanedText: "Wij maken machines.",
       sourceConfidence: 0.5,
+      pages: [{ pageUrl: "https://bedrijf.nl/", pageType: "homepage", cleanedText: "Wij maken machines." }],
     });
   });
 
@@ -122,6 +138,26 @@ describe("enrichAndStoreWebsiteData", () => {
       fakeSupabase,
       expect.objectContaining({ result: expect.objectContaining({ status: "failed" }) }),
     );
+  });
+
+  it("negeert defensief misvormde items in een opgeslagen cleaned_text_per_page", async () => {
+    const existing = makeRow({
+      cleaned_text_per_page: [
+        { page_url: "https://bedrijf.nl/", page_type: "homepage", cleaned_text: "goed" },
+        { page_url: "https://bedrijf.nl/x" }, // ontbrekende velden
+        "niet eens een object",
+        null,
+      ] as unknown as WebsiteEnrichmentRow["cleaned_text_per_page"],
+    });
+    const getExistingWebsiteEnrichment = vi.fn().mockResolvedValue(existing);
+
+    const result = await enrichAndStoreWebsiteData(
+      fakeSupabase,
+      { importRowId: "row-1", userId: "user-1", websiteUrl: "https://bedrijf.nl" },
+      { getExistingWebsiteEnrichment, analyzeWebsite: vi.fn(), storeWebsiteEnrichment: vi.fn() },
+    );
+
+    expect(result.pages).toEqual([{ pageUrl: "https://bedrijf.nl/", pageType: "homepage", cleanedText: "goed" }]);
   });
 
   it("laat een databasefout bij het ophalen van de bestaande verrijking wél doorgooien", async () => {

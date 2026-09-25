@@ -8,6 +8,7 @@ import {
   storeWebsiteEnrichment,
   type RefetchOptions,
 } from "./storeWebsiteEnrichment";
+import type { PageForExtraction } from "./companyIntelligenceTypes";
 
 export interface EnrichAndStoreWebsiteParams {
   importRowId: string;
@@ -27,6 +28,21 @@ export interface WebsiteEnrichmentForScoring {
   status: WebsiteStatus;
   combinedCleanedText: string | null;
   sourceConfidence: number;
+  pages: PageForExtraction[];
+}
+
+/** Leest de opgeslagen `cleaned_text_per_page` (jsonb) defensief terug in de vorm die de AI-extractie verwacht. */
+function mapStoredPages(value: unknown): PageForExtraction[] {
+  if (!Array.isArray(value)) return [];
+  const pages: PageForExtraction[] = [];
+  for (const item of value) {
+    if (typeof item !== "object" || item === null) continue;
+    const { page_url, page_type, cleaned_text } = item as Record<string, unknown>;
+    if (typeof page_url === "string" && typeof page_type === "string" && typeof cleaned_text === "string") {
+      pages.push({ pageUrl: page_url, pageType: page_type, cleanedText: cleaned_text });
+    }
+  }
+  return pages;
 }
 
 /**
@@ -60,6 +76,7 @@ export async function enrichAndStoreWebsiteData(
       status: existing!.website_status,
       combinedCleanedText: existing!.combined_cleaned_text,
       sourceConfidence: existing!.source_confidence ?? 0,
+      pages: mapStoredPages(existing!.cleaned_text_per_page),
     };
   }
 
@@ -84,5 +101,10 @@ export async function enrichAndStoreWebsiteData(
     status: result.status,
     combinedCleanedText: result.combinedCleanedText || null,
     sourceConfidence: result.sourceConfidence,
+    pages: result.pages.map((page) => ({
+      pageUrl: page.pageUrl,
+      pageType: page.pageType,
+      cleanedText: page.cleanedText,
+    })),
   };
 }
