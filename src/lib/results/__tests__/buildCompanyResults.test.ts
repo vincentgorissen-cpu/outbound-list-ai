@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCompanyResultRows } from "@/lib/results/buildCompanyResults";
-import type { IcpScoreRow, KvkEnrichmentRow, KvkMatchRow } from "@/lib/types/database.types";
+import type { IcpScoreRow, KvkEnrichmentRow, KvkMatchRow, WebsiteEnrichmentRow } from "@/lib/types/database.types";
 
 function importRow(
   id: string,
@@ -64,6 +64,32 @@ function icpScore(overrides: Partial<IcpScoreRow> & { import_row_id: string }): 
     prefilter_status: "passed",
     prefilter_reason: null,
     scored_at: "2026-01-01T00:00:00.000Z",
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function websiteEnrichment(
+  overrides: Partial<WebsiteEnrichmentRow> & { import_row_id: string },
+): WebsiteEnrichmentRow {
+  return {
+    id: `web-${overrides.import_row_id}`,
+    user_id: "user-1",
+    website_url: "https://acme.nl/",
+    website_status: "accessible",
+    website_checked_at: "2026-01-01T00:00:00.000Z",
+    error_message: null,
+    cleaned_text_per_page: [],
+    combined_cleaned_text: "Wij maken machines.",
+    company_description: null,
+    products_services: [],
+    industries_served: [],
+    target_markets: [],
+    business_model: null,
+    operational_signals: [],
+    company_locations: null,
+    source_confidence: 1,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -244,6 +270,52 @@ describe("buildCompanyResultRows", () => {
     expect(row.icpReasons).toEqual([]);
     expect(row.icpConfidence).toBeNull();
     expect(row.kvkOpgehaaldOp).toBeNull();
+  });
+
+  it("markeert een bedrijf met alleen een bereikbare website (geen KVK) als 'verrijkt'", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [],
+      [],
+      [],
+      [websiteEnrichment({ import_row_id: "1", website_status: "accessible" })],
+    );
+    expect(row.status).toBe("verrijkt");
+    expect(row.websiteStatus).toBe("accessible");
+  });
+
+  it("blijft 'nieuw' als de website niet bereikbaar was (nog geen bruikbare data)", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [],
+      [],
+      [],
+      [websiteEnrichment({ import_row_id: "1", website_status: "timeout", combined_cleaned_text: null })],
+    );
+    expect(row.status).toBe("nieuw");
+    expect(row.websiteStatus).toBe("timeout");
+  });
+
+  it("markeert een website-gescoord bedrijf als 'compleet', ook zonder KVK-enrichment", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [],
+      [],
+      [icpScore({ import_row_id: "1" })],
+      [websiteEnrichment({ import_row_id: "1" })],
+    );
+    expect(row.status).toBe("compleet");
+  });
+
+  it("laat een geslaagde AI-score voorrang krijgen op een oude, nooit-opgeloste KVK-match (KVK is uitgeschakeld)", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [],
+      [match({ import_row_id: "1", status: "review_required", resolution: null })],
+      [icpScore({ import_row_id: "1" })],
+      [websiteEnrichment({ import_row_id: "1" })],
+    );
+    expect(row.status).toBe("compleet");
   });
 
   it("verwerkt meerdere bedrijven onafhankelijk van elkaar in dezelfde aanroep", () => {

@@ -15,20 +15,22 @@ export default async function ResultsPage() {
 
   const ids = (importRows ?? []).map((row) => row.id);
 
-  const [{ data: enrichments }, { data: matches }, { data: icpScores }] =
+  const [{ data: enrichments }, { data: matches }, { data: icpScores }, { data: websiteEnrichments }] =
     ids.length > 0
       ? await Promise.all([
           supabase.from("kvk_enrichments").select("*").in("import_row_id", ids),
           supabase.from("kvk_matches").select("*").in("import_row_id", ids),
           supabase.from("icp_scores").select("*").in("import_row_id", ids),
+          supabase.from("website_enrichments").select("*").in("import_row_id", ids),
         ])
-      : [{ data: [] }, { data: [] }, { data: [] }];
+      : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
   const rows = buildCompanyResultRows(
     importRows ?? [],
     enrichments ?? [],
     matches ?? [],
     icpScores ?? [],
+    websiteEnrichments ?? [],
   );
 
   return (

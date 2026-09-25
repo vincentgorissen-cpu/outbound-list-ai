@@ -23,6 +23,7 @@ function row(overrides: Partial<CompanyResultRow> = {}): CompanyResultRow {
     icpReasons: ["Past qua sector", "Juiste omvang"],
     icpConfidence: 0.9,
     kvkOpgehaaldOp: "2026-03-05T10:00:00.000Z",
+    websiteStatus: "accessible",
     status: "compleet",
     reviewRequired: false,
     ...overrides,
@@ -38,7 +39,7 @@ function toRecord(companyRow: CompanyResultRow): Record<string, string> {
 }
 
 describe("EXPORT_COLUMNS", () => {
-  it("bevat exact de 16 gevraagde kolommen in de juiste volgorde met duidelijke Nederlandse namen", () => {
+  it("bevat exact de 17 gevraagde kolommen in de juiste volgorde met duidelijke Nederlandse namen", () => {
     expect(EXPORT_COLUMNS.map((c) => c.header)).toEqual([
       "Originele bedrijfsnaam",
       "Officiële KVK-bedrijfsnaam",
@@ -51,6 +52,7 @@ describe("EXPORT_COLUMNS", () => {
       "Plaats",
       "Bedrijfsclassificatie",
       "KVK-matchbetrouwbaarheid",
+      "Websitestatus",
       "ICP-score",
       "ICP-classificatie",
       "ICP-redenen",
@@ -67,6 +69,7 @@ describe("EXPORT_COLUMNS", () => {
     expect(record["ICP-redenen"]).toBe("Past qua sector; Juiste omvang");
     expect(record["AI-betrouwbaarheid"]).toBe("90%");
     expect(record["Laatste KVK-controle"]).toBe("05-03-2026");
+    expect(record["Websitestatus"]).toBe("Bereikbaar");
   });
 
   it("geeft lege strings terug voor lege/ontbrekende velden, nooit 'null' of 'undefined'", () => {
@@ -109,6 +112,10 @@ describe("EXPORT_COLUMNS", () => {
     expect(record["Originele bedrijfsnaam"]).toBe("Café Groothandel Müller-Öztürk B.V.");
     expect(record["Plaats"]).toBe("'s-Gravenhage");
     expect(record["SBI-omschrijving"]).toBe("Vervaardiging van kaas én zuivelproducten");
+  });
+
+  it("geeft een lege string voor websitestatus als er nog geen controle is geweest", () => {
+    expect(toRecord(row({ websiteStatus: null }))["Websitestatus"]).toBe("");
   });
 
   it("rondt de AI-betrouwbaarheid af naar een heel percentage", () => {

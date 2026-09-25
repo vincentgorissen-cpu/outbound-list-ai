@@ -17,7 +17,7 @@ import type { CompanyProcessingRow, Database } from "@/lib/types/database.types"
 
 /** Aantal bedrijven per chunk — klein genoeg om nooit tegen een timeout van de Server Action aan te lopen. */
 const CHUNK_SIZE = 5;
-/** Maximaal aantal gelijktijdige bedrijven binnen één chunk, om de KVK API niet te overbelasten. */
+/** Maximaal aantal gelijktijdige bedrijven binnen één chunk, om websites en de AI-API niet te overbelasten. */
 const CONCURRENCY_LIMIT = 3;
 
 export type { ProcessingCounts };

@@ -26,6 +26,7 @@ function makeRow(index: number, overrides: Partial<CompanyResultRow> = {}): Comp
     icpReasons: ["Past qua sector"],
     icpConfidence: 0.8,
     kvkOpgehaaldOp: "2026-03-05T10:00:00.000Z",
+    websiteStatus: "accessible",
     status: "compleet",
     reviewRequired: false,
     ...overrides,
@@ -53,6 +54,7 @@ function emptyRow(index: number): CompanyResultRow {
     icpReasons: [],
     icpConfidence: null,
     kvkOpgehaaldOp: null,
+    websiteStatus: null,
     status: "nieuw",
     reviewRequired: false,
   };

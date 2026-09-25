@@ -1,4 +1,4 @@
-import { BEDRIJFSCLASSIFICATIE_LABEL, ICP_LABEL } from "./labels";
+import { BEDRIJFSCLASSIFICATIE_LABEL, ICP_LABEL, WEBSITE_STATUS_LABEL } from "./labels";
 import type { CompanyResultRow } from "./types";
 
 function text(value: string | number | null): string {
@@ -45,6 +45,10 @@ export const EXPORT_COLUMNS: ExportColumn[] = [
     getValue: (row) => BEDRIJFSCLASSIFICATIE_LABEL[row.bedrijfsclassificatie],
   },
   { header: "KVK-matchbetrouwbaarheid", getValue: (row) => text(row.kvkMatchConfidence) },
+  {
+    header: "Websitestatus",
+    getValue: (row) => (row.websiteStatus ? WEBSITE_STATUS_LABEL[row.websiteStatus] : ""),
+  },
   { header: "ICP-score", getValue: (row) => text(row.icpScore) },
   {
     header: "ICP-classificatie",

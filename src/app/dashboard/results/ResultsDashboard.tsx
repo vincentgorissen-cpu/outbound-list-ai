@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { CompanyClassification } from "@/lib/classification/types";
 import type { IcpClassification, KvkEnrichmentStatus } from "@/lib/types/database.types";
 import type { CompanyPipelineStatus, CompanyResultRow } from "@/lib/results/types";
-import { BEDRIJFSCLASSIFICATIE_LABEL, ICP_LABEL } from "@/lib/results/labels";
+import { BEDRIJFSCLASSIFICATIE_LABEL, ICP_LABEL, WEBSITE_STATUS_LABEL } from "@/lib/results/labels";
 
 const STATUS_LABEL: Record<CompanyPipelineStatus, string> = {
   nieuw: "Nieuw",
@@ -437,6 +437,7 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
               <th className="p-2">SBI-activiteit</th>
               <th className="p-2">Medewerkers</th>
               <th className="p-2">KVK-confidence</th>
+              <th className="p-2">Websitestatus</th>
               <th className="p-2">Bedrijfsclassificatie</th>
               <th className="p-2">ICP-score</th>
               <th className="p-2">ICP-classificatie</th>
@@ -465,6 +466,9 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
                 </td>
                 <td className="p-2 text-slate-600">{formatValue(row.aantalMedewerkers)}</td>
                 <td className="p-2 text-slate-600">{formatValue(row.kvkMatchConfidence)}</td>
+                <td className="p-2 text-slate-600">
+                  {row.websiteStatus ? WEBSITE_STATUS_LABEL[row.websiteStatus] : "—"}
+                </td>
                 <td className="p-2 text-slate-600">
                   {BEDRIJFSCLASSIFICATIE_LABEL[row.bedrijfsclassificatie]}
                 </td>

@@ -58,20 +58,22 @@ export async function POST(request: Request) {
 
   const ids = orderedImportRows.map((row) => row.id);
 
-  const [{ data: enrichments }, { data: matches }, { data: icpScores }] =
+  const [{ data: enrichments }, { data: matches }, { data: icpScores }, { data: websiteEnrichments }] =
     ids.length > 0
       ? await Promise.all([
           supabase.from("kvk_enrichments").select("*").in("import_row_id", ids),
           supabase.from("kvk_matches").select("*").in("import_row_id", ids),
           supabase.from("icp_scores").select("*").in("import_row_id", ids),
+          supabase.from("website_enrichments").select("*").in("import_row_id", ids),
         ])
-      : [{ data: [] }, { data: [] }, { data: [] }];
+      : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
   const rows = buildCompanyResultRows(
     orderedImportRows,
     enrichments ?? [],
     matches ?? [],
     icpScores ?? [],
+    websiteEnrichments ?? [],
   );
 
   const date = new Date().toISOString().slice(0, 10);

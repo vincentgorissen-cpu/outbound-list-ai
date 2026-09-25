@@ -1,5 +1,5 @@
 import type { CompanyClassification } from "@/lib/classification/types";
-import type { IcpClassification, KvkEnrichmentStatus } from "@/lib/types/database.types";
+import type { IcpClassification, KvkEnrichmentStatus, WebsiteStatus } from "@/lib/types/database.types";
 
 /**
  * Samengevatte pijplijnstatus per bedrijf, afgeleid uit de aanwezige
@@ -44,6 +44,8 @@ export interface CompanyResultRow {
   icpConfidence: number | null;
   /** Tijdstip waarop de KVK-gegevens voor het laatst zijn opgehaald. */
   kvkOpgehaaldOp: string | null;
+  /** Resultaat van de laatste websitecontrole (`WebsiteIntelligenceService`); null als er nog geen poging is gedaan. */
+  websiteStatus: WebsiteStatus | null;
   status: CompanyPipelineStatus;
   /** True zolang een review_required/no_reliable_match-match nog niet is opgelost. */
   reviewRequired: boolean;

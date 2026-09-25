@@ -12,6 +12,8 @@ export interface IcpCompanyCandidate extends PrefilterCompanyInput {
   officieleNaam: string;
   sbiOmschrijvingen: string[];
   website: string | null;
+  /** Opgeschoonde websitetekst (indien beschikbaar) — zie `WebsiteIntelligenceService`. */
+  bedrijfsomschrijving?: string | null;
 }
 
 export interface RunIcpForCompanyParams {
@@ -63,6 +65,7 @@ export async function runIcpForCompany(
     aantalWerkzamePersonen: company.aantalWerkzamePersonen,
     plaats: company.plaats,
     website: company.website,
+    bedrijfsomschrijving: company.bedrijfsomschrijving,
   };
 
   try {

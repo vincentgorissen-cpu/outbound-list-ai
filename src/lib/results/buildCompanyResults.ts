@@ -4,6 +4,7 @@ import type {
   ImportRecordRow,
   KvkEnrichmentRow,
   KvkMatchRow,
+  WebsiteEnrichmentRow,
 } from "@/lib/types/database.types";
 import type { CompanyPipelineStatus, CompanyResultRow } from "./types";
 
@@ -15,17 +16,25 @@ function isReviewRequired(match: KvkMatchRow | undefined): boolean {
   return openStatus && match.resolution === null;
 }
 
+/**
+ * Een geslaagde AI-score telt altijd als "compleet", ongeacht of die tot
+ * stand kwam via de (oudere) KVK-verrijking of via website-informatie —
+ * anders zou een bedrijf dat via de website-pijplijn is gescoord blijven
+ * hangen op "controle_nodig" door een oude, nooit-opgeloste KVK-match die
+ * na het uitschakelen van KVK toch niet meer relevant is.
+ */
 function deriveStatus(
   enrichment: KvkEnrichmentRow | undefined,
   match: KvkMatchRow | undefined,
   icp: IcpScoreRow | undefined,
   reviewRequired: boolean,
+  website: WebsiteEnrichmentRow | undefined,
 ): CompanyPipelineStatus {
+  if (icp?.status === "scored") return "compleet";
   if (icp?.status === "ai_processing_failed") return "icp_mislukt";
   if (reviewRequired) return "controle_nodig";
   if (!enrichment && match?.resolution === "rejected") return "afgewezen";
-  if (enrichment && icp?.status === "scored") return "compleet";
-  if (enrichment) return "verrijkt";
+  if (enrichment || website?.website_status === "accessible") return "verrijkt";
   return "nieuw";
 }
 
@@ -46,25 +55,28 @@ function stringArray(value: unknown): string[] {
 }
 
 /**
- * Voegt import_rows, kvk_enrichments, kvk_matches en icp_scores samen tot
- * één rij per bedrijf voor het resultatenoverzicht. Roept `classifyCompany`
- * aan (bestaande, ongewijzigde rule engine) maar wijzigt niets aan de
- * brontabellen — dit is een puur leesbare weergave.
+ * Voegt import_rows, kvk_enrichments, kvk_matches, website_enrichments en
+ * icp_scores samen tot één rij per bedrijf voor het resultatenoverzicht.
+ * Roept `classifyCompany` aan (bestaande, ongewijzigde rule engine) maar
+ * wijzigt niets aan de brontabellen — dit is een puur leesbare weergave.
  */
 export function buildCompanyResultRows(
   importRows: ImportRowForResults[],
   enrichments: KvkEnrichmentRow[],
   matches: KvkMatchRow[],
   icpScores: IcpScoreRow[],
+  websiteEnrichments: WebsiteEnrichmentRow[] = [],
 ): CompanyResultRow[] {
   const enrichmentByRow = new Map(enrichments.map((e) => [e.import_row_id, e]));
   const matchByRow = new Map(matches.map((m) => [m.import_row_id, m]));
   const icpByRow = new Map(icpScores.map((s) => [s.import_row_id, s]));
+  const websiteByRow = new Map(websiteEnrichments.map((w) => [w.import_row_id, w]));
 
   return importRows.map((row) => {
     const enrichment = enrichmentByRow.get(row.id);
     const match = matchByRow.get(row.id);
     const icp = icpByRow.get(row.id);
+    const website = websiteByRow.get(row.id);
     const reviewRequired = isReviewRequired(match);
 
     return {
@@ -90,7 +102,8 @@ export function buildCompanyResultRows(
       icpReasons: stringArray(icp?.reasons),
       icpConfidence: icp?.confidence ?? null,
       kvkOpgehaaldOp: enrichment?.opgehaald_op ?? null,
-      status: deriveStatus(enrichment, match, icp, reviewRequired),
+      websiteStatus: website?.website_status ?? null,
+      status: deriveStatus(enrichment, match, icp, reviewRequired, website),
       reviewRequired,
     };
   });

@@ -76,6 +76,29 @@ describe("runIcpForCompany", () => {
     expect(upsert.mock.calls[0][0]).toMatchObject({ status: "scored", score: 85 });
   });
 
+  it("geeft de opgeschoonde websitetekst door als bedrijfsomschrijving aan de AI-scoring", async () => {
+    const { supabase } = buildSupabaseMock();
+    vi.mocked(scoreCompanyIcpFit).mockResolvedValue({
+      score: 60,
+      classification: "medium_fit",
+      reasons: [],
+      concerns: [],
+      confidence: 0.5,
+    });
+
+    await runIcpForCompany(supabase, {
+      userId: "user-1",
+      icpProfileDescription: "Industriële automatisering",
+      prefilterConfig: EMPTY_PREFILTER_CONFIG,
+      company: company({ bedrijfsomschrijving: "Wij maken precisieonderdelen voor de machinebouw." }),
+    });
+
+    expect(scoreCompanyIcpFit).toHaveBeenCalledWith(
+      "Industriële automatisering",
+      expect.objectContaining({ bedrijfsomschrijving: "Wij maken precisieonderdelen voor de machinebouw." }),
+    );
+  });
+
   it("slaat ai_processing_failed op wanneer de AI-aanroep mislukt, zonder te gooien", async () => {
     const { supabase, upsert } = buildSupabaseMock();
     vi.mocked(scoreCompanyIcpFit).mockRejectedValue(new IcpScoringError("AI-aanroep mislukt: timeout"));
