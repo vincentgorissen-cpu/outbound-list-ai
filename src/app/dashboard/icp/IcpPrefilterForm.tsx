@@ -29,16 +29,23 @@ export function IcpPrefilterForm({ initialConfig }: { initialConfig: IcpPrefilte
         </p>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <p className="rounded-md bg-amber-50 p-3 text-xs text-amber-800">
+        De KVK-koppeling is uitgeschakeld (te kostbaar). De vier velden hieronder (status,
+        rechtsvorm, SBI-code, aantal medewerkers) werken daarom momenteel niet — die gegevens komen
+        alleen uit de KVK en zijn niet meer beschikbaar. Alleen &quot;Toegestane provincies&quot;
+        (gebaseerd op de geïmporteerde plaats) is nu actief.
+      </p>
+
+      <label className="flex items-center gap-2 text-sm text-slate-400">
         <input
           type="checkbox"
           name="excludeInactief"
           defaultChecked={initialConfig.excludeStatuses.includes("inactief")}
         />
-        Sluit inactieve bedrijven uit
+        Sluit inactieve bedrijven uit <span className="text-xs">(werkt niet zonder KVK)</span>
       </label>
 
-      <div>
+      <div className="opacity-50">
         <Label htmlFor="excludeRechtsvormenCsv">Uit te sluiten rechtsvormen</Label>
         <Input
           id="excludeRechtsvormenCsv"
@@ -49,7 +56,7 @@ export function IcpPrefilterForm({ initialConfig }: { initialConfig: IcpPrefilte
         <p className="mt-1 text-xs text-slate-400">Kommagescheiden, exacte naam zoals in de KVK-gegevens.</p>
       </div>
 
-      <div>
+      <div className="opacity-50">
         <Label htmlFor="excludeSbiCodePrefixesCsv">Uit te sluiten SBI-codes</Label>
         <Input
           id="excludeSbiCodePrefixesCsv"
@@ -62,7 +69,7 @@ export function IcpPrefilterForm({ initialConfig }: { initialConfig: IcpPrefilte
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 opacity-50 sm:grid-cols-2">
         <div>
           <Label htmlFor="minAantalWerknemers">Minimaal aantal medewerkers</Label>
           <Input

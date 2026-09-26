@@ -19,9 +19,10 @@ export default async function ProcessingPage() {
       <div>
         <h1 className="text-xl font-semibold text-slate-900">Verwerking</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Zoekt en verrijkt geïmporteerde bedrijven met KVK-gegevens, classificeert ze en scoort ze
-          (indien een klantprofiel is ingesteld) met AI. Draait in kleine stapjes, zodat je de
-          voortgang live ziet en een onderbroken run altijd hervat kan worden.
+          Haalt voor elk geïmporteerd bedrijf de officiële website op, zet die met AI om naar
+          gestructureerde bedrijfsinformatie, en scoort het bedrijf (indien een klantprofiel is
+          ingesteld) tegen je ideale klantprofiel. KVK wordt niet meer gebruikt. Draait in kleine
+          stapjes, zodat je de voortgang live ziet en een onderbroken run altijd hervat kan worden.
         </p>
       </div>
 

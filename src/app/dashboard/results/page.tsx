@@ -38,7 +38,8 @@ export default async function ResultsPage() {
       <div>
         <h1 className="text-xl font-semibold text-slate-900">Resultaten</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Overzicht van alle geïmporteerde bedrijven, hun KVK-gegevens en ICP-score.
+          Overzicht van alle geïmporteerde bedrijven, hun website-informatie en ICP-score. Klik op
+          &quot;Details&quot; bij een bedrijf voor de volledige onderbouwing van de score.
         </p>
       </div>
 

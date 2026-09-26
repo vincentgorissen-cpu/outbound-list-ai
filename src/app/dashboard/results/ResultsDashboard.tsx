@@ -254,7 +254,7 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         <SummaryTile label="Geïmporteerd" value={summary.totaal} />
-        <SummaryTile label="KVK-matches" value={summary.succesvolleMatches} />
+        <SummaryTile label="KVK-matches (archief)" value={summary.succesvolleMatches} />
         <SummaryTile label="Controle nodig" value={summary.controleNodig} accent="amber" />
         <SummaryTile label="High fit" value={summary.highFit} accent="emerald" />
         <SummaryTile label="Medium fit" value={summary.mediumFit} accent="blue" />

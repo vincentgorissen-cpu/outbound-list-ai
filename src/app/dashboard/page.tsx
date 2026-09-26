@@ -22,7 +22,7 @@ export default async function DashboardPage() {
       >
         <h2 className="text-sm font-medium text-slate-900">Resultaten bekijken</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Alle geïmporteerde bedrijven met KVK-gegevens, classificatie en ICP-score.
+          Alle geïmporteerde bedrijven met website-informatie, classificatie en ICP-score.
         </p>
       </Link>
 
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
         >
           <h2 className="text-sm font-medium text-slate-900">Verwerking starten</h2>
           <p className="mt-1 text-sm text-slate-500">
-            KVK-matching, verrijking en AI-scoring uitvoeren voor geïmporteerde bedrijven.
+            Website ophalen, AI-extractie en ICP-scoring uitvoeren voor geïmporteerde bedrijven.
           </p>
         </Link>
 
@@ -54,11 +54,11 @@ export default async function DashboardPage() {
           className="rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-slate-400"
         >
           <h2 className="text-sm font-medium text-slate-900">
-            KVK-matches controleren
+            KVK-matches (archief)
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Bedrijven waarvoor geen automatisch bevestigde KVK-match is
-            gevonden.
+            Oude, nooit-opgeloste KVK-matches van vóór het uitschakelen van de KVK-koppeling. Niet
+            meer relevant voor nieuwe verwerking.
           </p>
         </Link>
 

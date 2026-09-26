@@ -89,9 +89,9 @@ export function KvkReviewRow({
         )}
         {state.status === "success" && <p className="text-sm text-emerald-700">{state.message}</p>}
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {candidates.length > 0 && (
-            <Button type="submit" name="decision" value="confirm" disabled={pending}>
+            <Button type="submit" name="decision" value="confirm" disabled title="Uitgeschakeld: dit zou een betaalde KVK-aanroep doen, en de KVK-koppeling is uitgeschakeld.">
               Bevestig gekozen kandidaat
             </Button>
           )}
@@ -99,6 +99,12 @@ export function KvkReviewRow({
             Geen van deze klopt
           </Button>
         </div>
+        {candidates.length > 0 && (
+          <p className="text-xs text-slate-400">
+            Bevestigen is uitgeschakeld: dit zou een KVK-aanroep doen, en de KVK-koppeling staat
+            uit. Je kunt deze rij wel afwijzen om hem uit de lijst te verwijderen.
+          </p>
+        )}
       </form>
     </div>
   );

@@ -26,9 +26,10 @@ export default async function KvkReviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">KVK-matches controleren</h1>
+        <h1 className="text-xl font-semibold text-slate-900">KVK-matches (archief)</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Bedrijven waarvoor geen automatisch bevestigde KVK-match is gevonden.
+          Oude, nooit-opgeloste KVK-matches van vóór het uitschakelen van de KVK-koppeling. De
+          verwerking gebruikt KVK niet meer, dus hier komen geen nieuwe bedrijven meer bij.
         </p>
       </div>
 

@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { parsePrefilterConfig } from "@/lib/icp/prefilter/parseConfig";
 import { IcpProfileForm } from "./IcpProfileForm";
 import { IcpPrefilterForm } from "./IcpPrefilterForm";
-import { IcpTestRunner } from "./IcpTestRunner";
 
 const CLASSIFICATION_LABEL: Record<string, string> = {
   high_fit: "Goede match",
@@ -64,9 +63,13 @@ export default async function IcpPage() {
         <IcpPrefilterForm initialConfig={prefilterConfig} />
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <IcpTestRunner />
-      </div>
+      <p className="text-sm text-slate-500">
+        AI-scoring gebeurt automatisch tijdens{" "}
+        <a href="/dashboard/processing" className="underline hover:text-slate-700">
+          Verwerking starten
+        </a>
+        , per geïmporteerd bedrijf.
+      </p>
 
       {scores && scores.length > 0 && (
         <div>
