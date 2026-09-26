@@ -11,7 +11,7 @@ function buildSupabaseMock(upsertResult: { error: { message: string } | null }) 
 }
 
 describe("storeIcpScore", () => {
-  it("slaat een geslaagde score correct op", async () => {
+  it("slaat een geslaagde score correct op, inclusief data_completeness/data_sources en de nieuwe AI-velden", async () => {
     const { supabase, from, upsert } = buildSupabaseMock({ error: null });
 
     await storeIcpScore(supabase, {
@@ -24,7 +24,11 @@ describe("storeIcpScore", () => {
         reasons: ["past qua sector"],
         concerns: [],
         confidence: 0.9,
+        missingImportantData: ["omzet onbekend"],
+        keySalesSignals: ["eigen productie"],
       },
+      dataCompleteness: 0.75,
+      dataSources: ["upload", "website"],
     });
 
     expect(from).toHaveBeenCalledWith("icp_scores");
@@ -37,18 +41,24 @@ describe("storeIcpScore", () => {
       classification: "high_fit",
       confidence: 0.9,
       error_message: null,
+      data_completeness: 0.75,
+      data_sources: ["upload", "website"],
+      missing_important_data: ["omzet onbekend"],
+      key_sales_signals: ["eigen productie"],
     });
     expect(payload.reasons).toEqual(["past qua sector"]);
     expect(options).toEqual({ onConflict: "import_row_id" });
   });
 
-  it("slaat een mislukte AI-call op als ai_processing_failed, met null-velden en foutmelding", async () => {
+  it("slaat een mislukte AI-call op als ai_processing_failed, met null-velden, foutmelding en toch data_completeness/data_sources", async () => {
     const { supabase, upsert } = buildSupabaseMock({ error: null });
 
     await storeIcpScore(supabase, {
       importRowId: "row-2",
       userId: "user-1",
       result: { status: "ai_processing_failed", errorMessage: "AI-aanroep mislukt: timeout" },
+      dataCompleteness: 0.5,
+      dataSources: ["upload"],
     });
 
     const [payload] = upsert.mock.calls[0];
@@ -58,10 +68,14 @@ describe("storeIcpScore", () => {
       classification: null,
       confidence: null,
       error_message: "AI-aanroep mislukt: timeout",
+      data_completeness: 0.5,
+      data_sources: ["upload"],
+      missing_important_data: [],
+      key_sales_signals: [],
     });
   });
 
-  it("slaat een deterministische uitsluiting op als excluded_by_prefilter, met de reden en zonder AI-velden", async () => {
+  it("slaat een deterministische uitsluiting op als excluded_by_prefilter, met de reden, zonder AI-velden en toch data_completeness/data_sources", async () => {
     const { supabase, upsert } = buildSupabaseMock({ error: null });
 
     await storeIcpScore(supabase, {
@@ -71,6 +85,8 @@ describe("storeIcpScore", () => {
         status: "excluded_by_prefilter",
         reason: "Status \"inactief\" is uitgesloten door de voorfilters.",
       },
+      dataCompleteness: 0.25,
+      dataSources: ["upload"],
     });
 
     const [payload] = upsert.mock.calls[0];
@@ -82,6 +98,8 @@ describe("storeIcpScore", () => {
       error_message: null,
       prefilter_status: "excluded",
       prefilter_reason: 'Status "inactief" is uitgesloten door de voorfilters.',
+      data_completeness: 0.25,
+      data_sources: ["upload"],
     });
   });
 
@@ -98,7 +116,11 @@ describe("storeIcpScore", () => {
         reasons: [],
         concerns: [],
         confidence: 0.5,
+        missingImportantData: [],
+        keySalesSignals: [],
       },
+      dataCompleteness: 1,
+      dataSources: ["upload", "website"],
     });
     expect(upsert.mock.calls[0][0]).toMatchObject({ prefilter_status: "passed", prefilter_reason: null });
 
@@ -106,6 +128,8 @@ describe("storeIcpScore", () => {
       importRowId: "row-5",
       userId: "user-1",
       result: { status: "ai_processing_failed", errorMessage: "timeout" },
+      dataCompleteness: 0,
+      dataSources: ["upload"],
     });
     expect(upsert.mock.calls[1][0]).toMatchObject({ prefilter_status: "passed", prefilter_reason: null });
   });
@@ -118,6 +142,8 @@ describe("storeIcpScore", () => {
         importRowId: "row-1",
         userId: "user-1",
         result: { status: "ai_processing_failed", errorMessage: "x" },
+        dataCompleteness: 0,
+        dataSources: ["upload"],
       }),
     ).rejects.toThrow(/kaboom/);
   });

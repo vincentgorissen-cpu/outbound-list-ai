@@ -3,8 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
 import { extractCompanyIntelligence } from "./extractCompanyIntelligence";
 import { getExistingWebsiteEnrichment } from "./storeWebsiteEnrichment";
-import { shouldExtractCompanyIntelligence, storeCompanyIntelligence } from "./storeCompanyIntelligence";
-import type { PageForExtraction } from "./companyIntelligenceTypes";
+import {
+  mapRowToCompanyIntelligenceData,
+  shouldExtractCompanyIntelligence,
+  storeCompanyIntelligence,
+} from "./storeCompanyIntelligence";
+import type { CompanyIntelligenceData, PageForExtraction } from "./companyIntelligenceTypes";
 
 export interface ExtractAndStoreCompanyIntelligenceParams {
   importRowId: string;
@@ -19,9 +23,10 @@ export interface ExtractAndStoreCompanyIntelligenceDeps {
 }
 
 export type ExtractAndStoreOutcome =
-  | { outcome: "skipped" }
-  | { outcome: "extracted" }
-  | { outcome: "failed"; message: string };
+  | { outcome: "skipped"; data: null }
+  | { outcome: "reused"; data: CompanyIntelligenceData }
+  | { outcome: "extracted"; data: CompanyIntelligenceData }
+  | { outcome: "failed"; message: string; data: null };
 
 /**
  * Orkestreert de AI-extractiestap: bepaalt (via
@@ -32,6 +37,11 @@ export type ExtractAndStoreOutcome =
  * verwerking nooit: een mislukte extractie levert `extraction_failed` op
  * in de database, maar blokkeert de ICP-scoring op basis van upload- en
  * ruwe websitegegevens niet.
+ *
+ * Geeft altijd de beste op dit moment beschikbare `data` terug — ook als
+ * er dit keer niets nieuws is geëxtraheerd (`outcome: "reused"`, van een
+ * eerdere geslaagde poging) — zodat de aanroeper (`processCompany.ts`)
+ * die zonder extra databaseaanroep in de ICP-scoring kan meenemen.
  */
 export async function extractAndStoreCompanyIntelligence(
   supabase: SupabaseClient<Database>,
@@ -44,12 +54,19 @@ export async function extractAndStoreCompanyIntelligence(
 
   const existing = await doGetExisting(supabase, importRowId, userId);
 
-  if (!shouldExtractCompanyIntelligence(existing) || pages.length === 0) {
-    return { outcome: "skipped" };
+  if (!shouldExtractCompanyIntelligence(existing)) {
+    const reused = existing ? mapRowToCompanyIntelligenceData(existing) : null;
+    return reused ? { outcome: "reused", data: reused } : { outcome: "skipped", data: null };
+  }
+
+  if (pages.length === 0) {
+    return { outcome: "skipped", data: null };
   }
 
   const result = await doExtract(pages);
   await doStore(supabase, { importRowId, userId, outcome: result });
 
-  return result.status === "extracted" ? { outcome: "extracted" } : { outcome: "failed", message: result.errorMessage };
+  return result.status === "extracted"
+    ? { outcome: "extracted", data: result.data }
+    : { outcome: "failed", message: result.errorMessage, data: null };
 }

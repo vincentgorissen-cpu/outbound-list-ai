@@ -16,7 +16,7 @@ export type KvkEnrichmentStatus = "actief" | "inactief";
 export type KvkMatchStatus = "high_confidence" | "review_required" | "no_reliable_match";
 export type KvkMatchResolution = "confirmed" | "rejected";
 export type IcpScoreStatus = "scored" | "ai_processing_failed" | "excluded_by_prefilter";
-export type IcpClassification = "high_fit" | "medium_fit" | "low_fit";
+export type IcpClassification = "high_fit" | "medium_fit" | "low_fit" | "insufficient_data";
 export type IcpPrefilterStatus = "passed" | "excluded";
 export type CompanyProcessingStatus =
   | "pending"
@@ -307,6 +307,10 @@ export interface Database {
           error_message: string | null;
           prefilter_status: IcpPrefilterStatus;
           prefilter_reason: string | null;
+          data_completeness: number | null;
+          missing_important_data: Json;
+          key_sales_signals: Json;
+          data_sources: Json;
           scored_at: string;
           created_at: string;
           updated_at: string;
@@ -324,6 +328,10 @@ export interface Database {
           error_message?: string | null;
           prefilter_status?: IcpPrefilterStatus;
           prefilter_reason?: string | null;
+          data_completeness?: number | null;
+          missing_important_data?: Json;
+          key_sales_signals?: Json;
+          data_sources?: Json;
           scored_at: string;
           created_at?: string;
           updated_at?: string;
@@ -341,6 +349,10 @@ export interface Database {
           error_message?: string | null;
           prefilter_status?: IcpPrefilterStatus;
           prefilter_reason?: string | null;
+          data_completeness?: number | null;
+          missing_important_data?: Json;
+          key_sales_signals?: Json;
+          data_sources?: Json;
           scored_at?: string;
           created_at?: string;
           updated_at?: string;

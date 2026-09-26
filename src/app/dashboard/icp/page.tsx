@@ -8,6 +8,7 @@ const CLASSIFICATION_LABEL: Record<string, string> = {
   high_fit: "Goede match",
   medium_fit: "Matige match",
   low_fit: "Zwakke match",
+  insufficient_data: "Te weinig data",
 };
 
 const STATUS_LABEL: Record<string, string> = {

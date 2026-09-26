@@ -46,6 +46,27 @@ export interface CompanyResultRow {
   kvkOpgehaaldOp: string | null;
   /** Resultaat van de laatste websitecontrole (`WebsiteIntelligenceService`); null als er nog geen poging is gedaan. */
   websiteStatus: WebsiteStatus | null;
+  /** Tijdstip van de laatste websitecontrole; null als er nog geen poging is gedaan. */
+  websiteCheckedAt: string | null;
+  /** Aantal pagina's dat daadwerkelijk is opgehaald en opgeschoond bij de laatste websitecontrole. */
+  pagesAnalyzed: number;
+  /** Korte, door AI geëxtraheerde bedrijfsomschrijving op basis van de website — null zonder (geslaagde) extractie. */
+  companyDescription: string | null;
+  productsServices: string[];
+  industriesServed: string[];
+  targetMarkets: string[];
+  businessModel: string | null;
+  operationalSignals: string[];
+  /** Vestigingsplaatsen/locaties zoals genoemd op de website (los van de upload-/KVK-`plaats`). */
+  websiteLocations: string[];
+  /** 0.0-1.0: hoeveel van de voor ICP-scoring relevante datapunten daadwerkelijk bekend waren (zie `computeDataCompleteness`). Null zonder score. */
+  dataCompleteness: number | null;
+  /** Welke databronnen daadwerkelijk zijn gebruikt bij het scoren van dit bedrijf. */
+  dataSources: string[];
+  /** Voor dit ICP-profiel relevante, maar ontbrekende informatie — door de AI benoemd, nooit zelf ingevuld. */
+  missingImportantData: string[];
+  /** Concrete, voor sales bruikbare signalen uit de beschikbare data. */
+  keySalesSignals: string[];
   status: CompanyPipelineStatus;
   /** True zolang een review_required/no_reliable_match-match nog niet is opgelost. */
   reviewRequired: boolean;

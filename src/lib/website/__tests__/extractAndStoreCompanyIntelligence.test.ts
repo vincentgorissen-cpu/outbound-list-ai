@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { extractAndStoreCompanyIntelligence } from "@/lib/website/extractAndStoreCompanyIntelligence";
-import type { ExtractionOutcome, PageForExtraction } from "@/lib/website/companyIntelligenceTypes";
+import type { CompanyIntelligenceData, ExtractionOutcome, PageForExtraction } from "@/lib/website/companyIntelligenceTypes";
 import type { WebsiteEnrichmentRow } from "@/lib/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database.types";
@@ -40,21 +40,20 @@ function makeRow(overrides: Partial<WebsiteEnrichmentRow> = {}): WebsiteEnrichme
   };
 }
 
+const EXTRACTED_DATA: CompanyIntelligenceData = {
+  companyDescription: "Machinebouwer.",
+  productsServices: [],
+  industriesServed: [],
+  targetMarkets: [],
+  businessModel: null,
+  operationalSignals: [],
+  locations: [],
+  confidence: 0.6,
+  evidence: [],
+};
+
 function extractedOutcome(): ExtractionOutcome {
-  return {
-    status: "extracted",
-    data: {
-      companyDescription: "Machinebouwer.",
-      productsServices: [],
-      industriesServed: [],
-      targetMarkets: [],
-      businessModel: null,
-      operationalSignals: [],
-      locations: [],
-      confidence: 0.6,
-      evidence: [],
-    },
-  };
+  return { status: "extracted", data: EXTRACTED_DATA };
 }
 
 describe("extractAndStoreCompanyIntelligence", () => {
@@ -69,7 +68,7 @@ describe("extractAndStoreCompanyIntelligence", () => {
       { getExistingWebsiteEnrichment, extractCompanyIntelligence, storeCompanyIntelligence },
     );
 
-    expect(result).toEqual({ outcome: "skipped" });
+    expect(result).toEqual({ outcome: "skipped", data: null });
     expect(extractCompanyIntelligence).not.toHaveBeenCalled();
     expect(storeCompanyIntelligence).not.toHaveBeenCalled();
   });
@@ -85,7 +84,7 @@ describe("extractAndStoreCompanyIntelligence", () => {
       { getExistingWebsiteEnrichment, extractCompanyIntelligence, storeCompanyIntelligence },
     );
 
-    expect(result).toEqual({ outcome: "skipped" });
+    expect(result).toEqual({ outcome: "skipped", data: null });
     expect(extractCompanyIntelligence).not.toHaveBeenCalled();
   });
 
@@ -99,13 +98,18 @@ describe("extractAndStoreCompanyIntelligence", () => {
       { getExistingWebsiteEnrichment, extractCompanyIntelligence },
     );
 
-    expect(result).toEqual({ outcome: "skipped" });
+    expect(result).toEqual({ outcome: "skipped", data: null });
     expect(extractCompanyIntelligence).not.toHaveBeenCalled();
   });
 
-  it("slaat een al geslaagde, nog actuele extractie over (kostenbeheersing)", async () => {
+  it("hergebruikt een al geslaagde, nog actuele extractie zonder nieuwe AI-aanroep (kostenbeheersing)", async () => {
     const getExistingWebsiteEnrichment = vi.fn().mockResolvedValue(
-      makeRow({ extraction_status: "extracted", extracted_at: "2026-01-01T00:05:00.000Z" }),
+      makeRow({
+        extraction_status: "extracted",
+        extracted_at: "2026-01-01T00:05:00.000Z",
+        company_description: "Machinebouwer.",
+        extraction_confidence: 0.6,
+      }),
     );
     const extractCompanyIntelligence = vi.fn();
 
@@ -115,8 +119,21 @@ describe("extractAndStoreCompanyIntelligence", () => {
       { getExistingWebsiteEnrichment, extractCompanyIntelligence },
     );
 
-    expect(result).toEqual({ outcome: "skipped" });
     expect(extractCompanyIntelligence).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      outcome: "reused",
+      data: {
+        companyDescription: "Machinebouwer.",
+        productsServices: [],
+        industriesServed: [],
+        targetMarkets: [],
+        businessModel: null,
+        operationalSignals: [],
+        locations: [],
+        confidence: 0.6,
+        evidence: [],
+      },
+    });
   });
 
   it("extraheert en slaat op bij een eerste poging op een bereikbare website", async () => {
@@ -136,7 +153,7 @@ describe("extractAndStoreCompanyIntelligence", () => {
       userId: "user-1",
       outcome: extractedOutcome(),
     });
-    expect(result).toEqual({ outcome: "extracted" });
+    expect(result).toEqual({ outcome: "extracted", data: EXTRACTED_DATA });
   });
 
   it("geeft 'failed' met de foutmelding terug als de extractie mislukt, en slaat dat toch op", async () => {
@@ -155,6 +172,6 @@ describe("extractAndStoreCompanyIntelligence", () => {
       fakeSupabase,
       expect.objectContaining({ outcome: failedOutcome }),
     );
-    expect(result).toEqual({ outcome: "failed", message: "ongeldig antwoord" });
+    expect(result).toEqual({ outcome: "failed", message: "ongeldig antwoord", data: null });
   });
 });

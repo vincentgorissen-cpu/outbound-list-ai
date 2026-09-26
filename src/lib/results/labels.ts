@@ -14,6 +14,7 @@ export const ICP_LABEL: Record<IcpClassification, string> = {
   high_fit: "Goede match",
   medium_fit: "Matige match",
   low_fit: "Zwakke match",
+  insufficient_data: "Te weinig data",
 };
 
 export const WEBSITE_STATUS_LABEL: Record<WebsiteStatus, string> = {

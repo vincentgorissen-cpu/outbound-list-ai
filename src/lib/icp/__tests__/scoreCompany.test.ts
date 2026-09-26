@@ -20,6 +20,8 @@ const VALID_RESULT = {
   reasons: ["Machinebouw past bij de doelgroep", "Bedrijfsgrootte binnen de range"],
   concerns: [],
   confidence: 0.85,
+  missing_important_data: [],
+  key_sales_signals: ["120 medewerkers"],
 };
 
 describe("scoreCompanyIcpFit", () => {
@@ -46,7 +48,15 @@ describe("scoreCompanyIcpFit", () => {
 
     const result = await scoreCompanyIcpFit(ICP_PROFILE, COMPANY, client);
 
-    expect(result).toEqual(VALID_RESULT);
+    expect(result).toEqual({
+      score: 90,
+      classification: "high_fit",
+      reasons: ["Machinebouw past bij de doelgroep", "Bedrijfsgrootte binnen de range"],
+      concerns: [],
+      confidence: 0.85,
+      missingImportantData: [],
+      keySalesSignals: ["120 medewerkers"],
+    });
   });
 
   it("gooit IcpScoringError als de AI-aanroep zelf faalt", async () => {
@@ -88,5 +98,65 @@ describe("scoreCompanyIcpFit", () => {
 
     const promptText = create.mock.calls[0][0].messages[0].content;
     expect(promptText).toContain("onbekend");
+    expect(promptText).toContain("Geen bruikbare website-informatie beschikbaar");
+  });
+
+  it("labelt elk gevuld datapunt met zijn bron", async () => {
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "tool_use", input: VALID_RESULT }] });
+    const client: IcpScoringClient = { messages: { create } };
+
+    await scoreCompanyIcpFit(ICP_PROFILE, COMPANY, client);
+
+    const promptText = create.mock.calls[0][0].messages[0].content;
+    expect(promptText).toContain("Eindhoven (bron: upload)");
+    expect(promptText).toContain("Machinebouw (bron: KVK)");
+    expect(promptText).toContain("120 (bron: KVK)");
+  });
+
+  it("neemt de gestructureerde website-intelligence op als apart, gelabeld blok", async () => {
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "tool_use", input: VALID_RESULT }] });
+    const client: IcpScoringClient = { messages: { create } };
+
+    await scoreCompanyIcpFit(
+      ICP_PROFILE,
+      {
+        ...COMPANY,
+        productsServices: ["Verpakkingsmachines"],
+        industriesServed: ["Voeding"],
+        operationalSignals: ["eigen productie"],
+      },
+      client,
+    );
+
+    const promptText = create.mock.calls[0][0].messages[0].content;
+    expect(promptText).toContain("Website-analyse (bron: website):");
+    expect(promptText).toContain("Producten/diensten: Verpakkingsmachines");
+    expect(promptText).toContain("Operationele signalen: eigen productie");
+  });
+
+  it("stuurt expliciete instructies mee: nooit gokken, score los van confidence, insufficient_data alleen bij echt te weinig data", async () => {
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "tool_use", input: VALID_RESULT }] });
+    const client: IcpScoringClient = { messages: { create } };
+
+    await scoreCompanyIcpFit(ICP_PROFILE, COMPANY, client);
+
+    const promptText = create.mock.calls[0][0].messages[0].content;
+    expect(promptText).toContain("Verzin of gok nooit");
+    expect(promptText).toContain("insufficient_data");
+  });
+
+  it("accepteert classification 'insufficient_data'", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [
+        {
+          type: "tool_use",
+          input: { ...VALID_RESULT, classification: "insufficient_data", score: 0, confidence: 0.1 },
+        },
+      ],
+    });
+    const client: IcpScoringClient = { messages: { create } };
+
+    const result = await scoreCompanyIcpFit(ICP_PROFILE, COMPANY, client);
+    expect(result.classification).toBe("insufficient_data");
   });
 });

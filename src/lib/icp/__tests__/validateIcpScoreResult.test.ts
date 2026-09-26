@@ -7,14 +7,24 @@ const VALID = {
   reasons: ["Past qua sector", "Past qua bedrijfsgrootte"],
   concerns: ["Geen website bekend"],
   confidence: 0.8,
+  missing_important_data: [],
+  key_sales_signals: ["Eigen productie"],
 };
 
 describe("validateIcpScoreResult", () => {
-  it("accepteert een volledig geldig object", () => {
+  it("accepteert een volledig geldig object en zet snake_case om naar camelCase", () => {
     const result = validateIcpScoreResult(VALID);
     expect(result.valid).toBe(true);
     if (result.valid) {
-      expect(result.value).toEqual(VALID);
+      expect(result.value).toEqual({
+        score: 85,
+        classification: "high_fit",
+        reasons: ["Past qua sector", "Past qua bedrijfsgrootte"],
+        concerns: ["Geen website bekend"],
+        confidence: 0.8,
+        missingImportantData: [],
+        keySalesSignals: ["Eigen productie"],
+      });
     }
   });
 
@@ -26,6 +36,10 @@ describe("validateIcpScoreResult", () => {
   it("accepteert de randwaarden 0 en 100 voor score, en 0.0/1.0 voor confidence", () => {
     expect(validateIcpScoreResult({ ...VALID, score: 0, confidence: 0 }).valid).toBe(true);
     expect(validateIcpScoreResult({ ...VALID, score: 100, confidence: 1 }).valid).toBe(true);
+  });
+
+  it("accepteert classification 'insufficient_data'", () => {
+    expect(validateIcpScoreResult({ ...VALID, classification: "insufficient_data" }).valid).toBe(true);
   });
 
   it("wijst een niet-object af", () => {
@@ -52,6 +66,18 @@ describe("validateIcpScoreResult", () => {
     expect(validateIcpScoreResult({ ...VALID, reasons: "geen lijst" }).valid).toBe(false);
     expect(validateIcpScoreResult({ ...VALID, reasons: [1, 2, 3] }).valid).toBe(false);
     expect(validateIcpScoreResult({ ...VALID, concerns: null }).valid).toBe(false);
+  });
+
+  it("wijst missing_important_data/key_sales_signals af die geen lijst van strings zijn", () => {
+    expect(validateIcpScoreResult({ ...VALID, missing_important_data: "geen lijst" }).valid).toBe(false);
+    expect(validateIcpScoreResult({ ...VALID, key_sales_signals: [1, 2] }).valid).toBe(false);
+  });
+
+  it("wijst ontbrekende missing_important_data/key_sales_signals af", () => {
+    const { missing_important_data: _m, ...withoutMissing } = VALID;
+    expect(validateIcpScoreResult(withoutMissing).valid).toBe(false);
+    const { key_sales_signals: _k, ...withoutSignals } = VALID;
+    expect(validateIcpScoreResult(withoutSignals).valid).toBe(false);
   });
 
   it("wijst een confidence buiten 0.0-1.0 af", () => {

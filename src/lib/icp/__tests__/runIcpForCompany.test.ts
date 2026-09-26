@@ -48,7 +48,11 @@ describe("runIcpForCompany", () => {
     expect(outcome).toEqual({ outcome: "excluded", reason: expect.stringContaining("inactief") });
     expect(scoreCompanyIcpFit).not.toHaveBeenCalled();
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(upsert.mock.calls[0][0]).toMatchObject({ status: "excluded_by_prefilter" });
+    expect(upsert.mock.calls[0][0]).toMatchObject({
+      status: "excluded_by_prefilter",
+      data_completeness: expect.any(Number),
+      data_sources: expect.arrayContaining(["upload"]),
+    });
   });
 
   it("scoort het bedrijf en slaat het resultaat op wanneer het de voorfilters doorstaat", async () => {
@@ -59,6 +63,8 @@ describe("runIcpForCompany", () => {
       reasons: ["Past qua sector"],
       concerns: [],
       confidence: 0.9,
+      missingImportantData: [],
+      keySalesSignals: ["50 medewerkers"],
     });
 
     const outcome = await runIcpForCompany(supabase, {
@@ -73,7 +79,14 @@ describe("runIcpForCompany", () => {
       "Industriële automatisering",
       expect.objectContaining({ bedrijfsnaam: "Acme B.V." }),
     );
-    expect(upsert.mock.calls[0][0]).toMatchObject({ status: "scored", score: 85 });
+    expect(upsert.mock.calls[0][0]).toMatchObject({
+      status: "scored",
+      score: 85,
+      missing_important_data: [],
+      key_sales_signals: ["50 medewerkers"],
+      data_completeness: expect.any(Number),
+      data_sources: expect.arrayContaining(["upload"]),
+    });
   });
 
   it("geeft de opgeschoonde websitetekst door als bedrijfsomschrijving aan de AI-scoring", async () => {
@@ -84,6 +97,8 @@ describe("runIcpForCompany", () => {
       reasons: [],
       concerns: [],
       confidence: 0.5,
+      missingImportantData: [],
+      keySalesSignals: [],
     });
 
     await runIcpForCompany(supabase, {
@@ -114,6 +129,32 @@ describe("runIcpForCompany", () => {
     expect(upsert.mock.calls[0][0]).toMatchObject({
       status: "ai_processing_failed",
       error_message: "AI-aanroep mislukt: timeout",
+      data_completeness: expect.any(Number),
+      data_sources: expect.arrayContaining(["upload"]),
+    });
+  });
+
+  it("berekent data_completeness/data_sources uit de meegegeven website-intelligence, niet uit de AI-output", async () => {
+    const { supabase, upsert } = buildSupabaseMock();
+    vi.mocked(scoreCompanyIcpFit).mockResolvedValue({
+      score: 70,
+      classification: "high_fit",
+      reasons: [],
+      concerns: [],
+      confidence: 0.6,
+      missingImportantData: [],
+      keySalesSignals: [],
+    });
+
+    await runIcpForCompany(supabase, {
+      userId: "user-1",
+      icpProfileDescription: "Industriële automatisering",
+      prefilterConfig: EMPTY_PREFILTER_CONFIG,
+      company: company({ productsServices: ["Verpakkingsmachines"], operationalSignals: ["eigen productie"] }),
+    });
+
+    expect(upsert.mock.calls[0][0]).toMatchObject({
+      data_sources: ["upload", "website"],
     });
   });
 });

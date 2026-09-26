@@ -33,7 +33,9 @@ const fakeSupabase = {} as unknown as SupabaseClient<Database>;
 const icpContext = { description: "Industriële automatisering", prefilterConfig: EMPTY_PREFILTER_CONFIG };
 
 /** Standaard-mock voor de nieuwe extractiestap; per test overschreven waar relevant. */
-function extractionMock(impl: () => Promise<ExtractAndStoreOutcome> = async () => ({ outcome: "extracted" })) {
+function extractionMock(
+  impl: () => Promise<ExtractAndStoreOutcome> = async () => ({ outcome: "skipped", data: null }),
+) {
   return vi.fn(impl);
 }
 
@@ -94,11 +96,51 @@ describe("processCompany", () => {
     expect(result).toEqual({ status: "completed" });
   });
 
+  it("gebruikt de gestructureerde website-intelligence (indien beschikbaar) in plaats van de ruwe websitetekst voor de AI-scoring", async () => {
+    const enrichAndStoreWebsiteData = vi.fn().mockResolvedValue(websiteResult());
+    const extractAndStoreCompanyIntelligence = extractionMock(async () => ({
+      outcome: "extracted",
+      data: {
+        companyDescription: "Machinebouwer voor de voedingsmiddelenindustrie.",
+        productsServices: ["Verpakkingsmachines"],
+        industriesServed: ["Voeding"],
+        targetMarkets: ["Nederland"],
+        businessModel: "B2B",
+        operationalSignals: ["eigen productie"],
+        locations: ["Utrecht"],
+        confidence: 0.8,
+        evidence: ["Pagina 1 (homepage): eigen productie"],
+      },
+    }));
+    const runIcpForCompany = vi.fn().mockResolvedValue({ outcome: "scored" });
+
+    await processCompany(
+      fakeSupabase,
+      { importRow: importRow(), userId: "user-1", icpContext },
+      { enrichAndStoreWebsiteData, extractAndStoreCompanyIntelligence, runIcpForCompany },
+    );
+
+    expect(runIcpForCompany).toHaveBeenCalledWith(
+      fakeSupabase,
+      expect.objectContaining({
+        company: expect.objectContaining({
+          bedrijfsomschrijving: "Machinebouwer voor de voedingsmiddelenindustrie.",
+          productsServices: ["Verpakkingsmachines"],
+          industriesServed: ["Voeding"],
+          targetMarkets: ["Nederland"],
+          businessModel: "B2B",
+          operationalSignals: ["eigen productie"],
+          websiteLocations: ["Utrecht"],
+        }),
+      }),
+    );
+  });
+
   it("scoort ook zonder website-URL, met bedrijfsomschrijving null en zonder pagina's om te extraheren", async () => {
     const enrichAndStoreWebsiteData = vi
       .fn()
       .mockResolvedValue(websiteResult({ status: "no_url", combinedCleanedText: null, sourceConfidence: 0, pages: [] }));
-    const extractAndStoreCompanyIntelligence = extractionMock(async () => ({ outcome: "skipped" }));
+    const extractAndStoreCompanyIntelligence = extractionMock(async () => ({ outcome: "skipped", data: null }));
     const runIcpForCompany = vi.fn().mockResolvedValue({ outcome: "scored" });
 
     const result = await processCompany(
@@ -128,7 +170,7 @@ describe("processCompany", () => {
     const enrichAndStoreWebsiteData = vi.fn().mockResolvedValue(
       websiteResult({ status: "timeout", combinedCleanedText: null, sourceConfidence: 0, pages: [] }),
     );
-    const extractAndStoreCompanyIntelligence = extractionMock(async () => ({ outcome: "skipped" }));
+    const extractAndStoreCompanyIntelligence = extractionMock(async () => ({ outcome: "skipped", data: null }));
     const runIcpForCompany = vi.fn().mockResolvedValue({ outcome: "scored" });
 
     const result = await processCompany(
@@ -146,6 +188,7 @@ describe("processCompany", () => {
     const extractAndStoreCompanyIntelligence = extractionMock(async () => ({
       outcome: "failed",
       message: "ongeldig antwoord",
+      data: null,
     }));
     const runIcpForCompany = vi.fn().mockResolvedValue({ outcome: "scored" });
 

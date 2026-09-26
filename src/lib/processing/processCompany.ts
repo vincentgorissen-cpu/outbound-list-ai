@@ -85,13 +85,17 @@ export async function processCompany(
 
   // Best-effort: een mislukte AI-extractie (of een infrastructuurfout
   // daarbinnen) markeert alleen `extraction_failed` op de website-rij en
-  // blokkeert de rest van de verwerking van dit bedrijf nooit.
+  // blokkeert de rest van de verwerking van dit bedrijf nooit. `data` is
+  // dan `null` — de ICP-scoring valt hieronder terug op de ruwe,
+  // opgeschoonde websitetekst.
+  let intelligence = null;
   try {
-    await doExtractAndStoreCompanyIntelligence(supabase, {
+    const extraction = await doExtractAndStoreCompanyIntelligence(supabase, {
       importRowId: importRow.id,
       userId,
       pages: website.pages,
     });
+    intelligence = extraction.data;
   } catch {
     // Genegeerd — zie hierboven.
   }
@@ -111,7 +115,13 @@ export async function processCompany(
         aantalWerkzamePersonen: null,
         plaats: importRow.plaats,
         website: importRow.website,
-        bedrijfsomschrijving: website.combinedCleanedText,
+        bedrijfsomschrijving: intelligence?.companyDescription ?? website.combinedCleanedText,
+        productsServices: intelligence?.productsServices,
+        industriesServed: intelligence?.industriesServed,
+        targetMarkets: intelligence?.targetMarkets,
+        businessModel: intelligence?.businessModel,
+        operationalSignals: intelligence?.operationalSignals,
+        websiteLocations: intelligence?.locations,
       },
     });
   }

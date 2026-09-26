@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { shouldExtractCompanyIntelligence, storeCompanyIntelligence } from "@/lib/website/storeCompanyIntelligence";
+import {
+  mapRowToCompanyIntelligenceData,
+  shouldExtractCompanyIntelligence,
+  storeCompanyIntelligence,
+} from "@/lib/website/storeCompanyIntelligence";
 import type { ExtractionOutcome } from "@/lib/website/companyIntelligenceTypes";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, WebsiteEnrichmentRow } from "@/lib/types/database.types";
@@ -104,6 +108,54 @@ function makeRow(overrides: Partial<WebsiteEnrichmentRow> = {}): WebsiteEnrichme
     ...overrides,
   };
 }
+
+describe("mapRowToCompanyIntelligenceData", () => {
+  it("geeft null als er nooit een geslaagde extractie is geweest", () => {
+    expect(mapRowToCompanyIntelligenceData(makeRow({ extraction_status: "not_attempted" }))).toBeNull();
+    expect(mapRowToCompanyIntelligenceData(makeRow({ extraction_status: "extraction_failed" }))).toBeNull();
+  });
+
+  it("leest een geslaagde extractie terug in de juiste vorm", () => {
+    const row = makeRow({
+      extraction_status: "extracted",
+      company_description: "Machinebouwer.",
+      products_services: ["Verpakkingsmachines"],
+      industries_served: ["Voeding"],
+      target_markets: ["Nederland"],
+      business_model: "B2B",
+      operational_signals: ["eigen productie"],
+      company_locations: ["Utrecht"],
+      extraction_confidence: 0.75,
+      evidence: ["Pagina 1 (homepage): noemt eigen productie"],
+    });
+
+    expect(mapRowToCompanyIntelligenceData(row)).toEqual({
+      companyDescription: "Machinebouwer.",
+      productsServices: ["Verpakkingsmachines"],
+      industriesServed: ["Voeding"],
+      targetMarkets: ["Nederland"],
+      businessModel: "B2B",
+      operationalSignals: ["eigen productie"],
+      locations: ["Utrecht"],
+      confidence: 0.75,
+      evidence: ["Pagina 1 (homepage): noemt eigen productie"],
+    });
+  });
+
+  it("negeert defensief misvormde jsonb-waarden en valt terug op lege lijsten", () => {
+    const row = makeRow({
+      extraction_status: "extracted",
+      products_services: "geen lijst" as unknown as WebsiteEnrichmentRow["products_services"],
+      company_locations: null,
+      extraction_confidence: null,
+    });
+
+    const result = mapRowToCompanyIntelligenceData(row);
+    expect(result?.productsServices).toEqual([]);
+    expect(result?.locations).toEqual([]);
+    expect(result?.confidence).toBe(0);
+  });
+});
 
 describe("shouldExtractCompanyIntelligence", () => {
   it("is false zonder bestaande rij", () => {

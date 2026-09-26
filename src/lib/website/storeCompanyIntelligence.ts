@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, WebsiteEnrichmentRow } from "@/lib/types/database.types";
-import type { ExtractionOutcome } from "./companyIntelligenceTypes";
+import type { CompanyIntelligenceData, ExtractionOutcome } from "./companyIntelligenceTypes";
 
 export interface StoreCompanyIntelligenceParams {
   importRowId: string;
@@ -53,6 +53,32 @@ export async function storeCompanyIntelligence(
   if (error) {
     throw new Error(`Kon company intelligence niet opslaan: ${error.message}`);
   }
+}
+
+function toStringArray(value: Json): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+/**
+ * Leest een eerder succesvol opgeslagen extractie terug in de vorm die de
+ * rest van de applicatie gebruikt (bv. om te hergebruiken voor
+ * ICP-scoring zonder opnieuw te hoeven extraheren). Geeft `null` als er
+ * nooit een geslaagde extractie is geweest.
+ */
+export function mapRowToCompanyIntelligenceData(row: WebsiteEnrichmentRow): CompanyIntelligenceData | null {
+  if (row.extraction_status !== "extracted") return null;
+
+  return {
+    companyDescription: row.company_description,
+    productsServices: toStringArray(row.products_services),
+    industriesServed: toStringArray(row.industries_served),
+    targetMarkets: toStringArray(row.target_markets),
+    businessModel: row.business_model,
+    operationalSignals: toStringArray(row.operational_signals),
+    locations: toStringArray(row.company_locations),
+    confidence: row.extraction_confidence ?? 0,
+    evidence: toStringArray(row.evidence),
+  };
 }
 
 /**

@@ -63,6 +63,10 @@ function icpScore(overrides: Partial<IcpScoreRow> & { import_row_id: string }): 
     error_message: null,
     prefilter_status: "passed",
     prefilter_reason: null,
+    data_completeness: null,
+    missing_important_data: [],
+    key_sales_signals: [],
+    data_sources: [],
     scored_at: "2026-01-01T00:00:00.000Z",
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
@@ -320,6 +324,76 @@ describe("buildCompanyResultRows", () => {
       [websiteEnrichment({ import_row_id: "1" })],
     );
     expect(row.status).toBe("compleet");
+  });
+
+  it("geeft de website-transparantievelden door (status/laatst gecontroleerd/aantal pagina's/omschrijving/etc.)", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [],
+      [],
+      [],
+      [
+        websiteEnrichment({
+          import_row_id: "1",
+          website_checked_at: "2026-02-01T00:00:00.000Z",
+          cleaned_text_per_page: [
+            { page_url: "https://acme.nl/", page_type: "homepage", cleaned_text: "x" },
+            { page_url: "https://acme.nl/over-ons", page_type: "about", cleaned_text: "y" },
+          ],
+          company_description: "Machinebouwer.",
+          products_services: ["Verpakkingsmachines"],
+          industries_served: ["Voeding"],
+          target_markets: ["Nederland"],
+          business_model: "B2B",
+          operational_signals: ["eigen productie"],
+          company_locations: ["Utrecht"],
+        }),
+      ],
+    );
+
+    expect(row.websiteCheckedAt).toBe("2026-02-01T00:00:00.000Z");
+    expect(row.pagesAnalyzed).toBe(2);
+    expect(row.companyDescription).toBe("Machinebouwer.");
+    expect(row.productsServices).toEqual(["Verpakkingsmachines"]);
+    expect(row.industriesServed).toEqual(["Voeding"]);
+    expect(row.targetMarkets).toEqual(["Nederland"]);
+    expect(row.businessModel).toBe("B2B");
+    expect(row.operationalSignals).toEqual(["eigen productie"]);
+    expect(row.websiteLocations).toEqual(["Utrecht"]);
+  });
+
+  it("geeft de ICP-transparantievelden door (data_completeness/data_sources/missing_important_data/key_sales_signals)", () => {
+    const [row] = buildCompanyResultRows(
+      [importRow("1", "Acme")],
+      [],
+      [],
+      [
+        icpScore({
+          import_row_id: "1",
+          data_completeness: 0.75,
+          data_sources: ["upload", "website"],
+          missing_important_data: ["omzet onbekend"],
+          key_sales_signals: ["eigen productie"],
+        }),
+      ],
+    );
+
+    expect(row.dataCompleteness).toBe(0.75);
+    expect(row.dataSources).toEqual(["upload", "website"]);
+    expect(row.missingImportantData).toEqual(["omzet onbekend"]);
+    expect(row.keySalesSignals).toEqual(["eigen productie"]);
+  });
+
+  it("geeft lege/nulwaarden voor de transparantievelden zonder website- of ICP-data", () => {
+    const [row] = buildCompanyResultRows([importRow("1", "Acme")], [], [], []);
+    expect(row.websiteCheckedAt).toBeNull();
+    expect(row.pagesAnalyzed).toBe(0);
+    expect(row.companyDescription).toBeNull();
+    expect(row.productsServices).toEqual([]);
+    expect(row.dataCompleteness).toBeNull();
+    expect(row.dataSources).toEqual([]);
+    expect(row.missingImportantData).toEqual([]);
+    expect(row.keySalesSignals).toEqual([]);
   });
 
   it("verwerkt meerdere bedrijven onafhankelijk van elkaar in dezelfde aanroep", () => {

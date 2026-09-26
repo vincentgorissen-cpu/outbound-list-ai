@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { CompanyClassification } from "@/lib/classification/types";
 import type { IcpClassification, KvkEnrichmentStatus } from "@/lib/types/database.types";
 import type { CompanyPipelineStatus, CompanyResultRow } from "@/lib/results/types";
@@ -61,6 +61,29 @@ function formatValue(value: string | number | null): string {
   return String(value);
 }
 
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** Statussen waarbij de website wél is geprobeerd, maar niet bruikbaar was — los van "no_url" (nooit geprobeerd, geen URL). */
+const WEBSITE_UNREACHABLE_STATUSES = new Set([
+  "dns_failed",
+  "timeout",
+  "blocked",
+  "robots_disallowed",
+  "http_error",
+  "unsupported_site",
+  "failed",
+]);
+
+const DATA_SOURCE_LABEL: Record<string, string> = {
+  upload: "upload",
+  website: "website",
+};
+
 type ExportFormat = "csv" | "xlsx";
 type ExportScope = "all" | "filtered" | "selected";
 
@@ -68,6 +91,7 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [sort, setSort] = useState<SortValue>("icpScore-desc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -148,6 +172,15 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
 
   function toggleRow(importRowId: string) {
     setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(importRowId)) next.delete(importRowId);
+      else next.add(importRowId);
+      return next;
+    });
+  }
+
+  function toggleExpanded(importRowId: string) {
+    setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(importRowId)) next.delete(importRowId);
       else next.add(importRowId);
@@ -443,58 +476,214 @@ export function ResultsDashboard({ rows }: { rows: CompanyResultRow[] }) {
               <th className="p-2">ICP-classificatie</th>
               <th className="p-2">Belangrijkste reden</th>
               <th className="p-2">Status</th>
+              <th className="p-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sortedRows.map((row) => (
-              <tr key={row.importRowId}>
-                <td className="p-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(row.importRowId)}
-                    onChange={() => toggleRow(row.importRowId)}
-                    aria-label={`${row.origineleBedrijfsnaam ?? "Bedrijf"} selecteren`}
-                  />
-                </td>
-                <td className="p-2 text-slate-900">{formatValue(row.origineleBedrijfsnaam)}</td>
-                <td className="p-2 text-slate-600">{formatValue(row.officieleNaam)}</td>
-                <td className="p-2 text-slate-600">{formatValue(row.kvkNummer)}</td>
-                <td className="p-2 text-slate-600">{formatValue(row.rechtsvorm)}</td>
-                <td className="p-2 text-slate-600">{formatValue(row.plaats)}</td>
-                <td className="max-w-[220px] truncate p-2 text-slate-600" title={row.sbiActiviteit ?? undefined}>
-                  {formatValue(row.sbiActiviteit)}
-                </td>
-                <td className="p-2 text-slate-600">{formatValue(row.aantalMedewerkers)}</td>
-                <td className="p-2 text-slate-600">{formatValue(row.kvkMatchConfidence)}</td>
-                <td className="p-2 text-slate-600">
-                  {row.websiteStatus ? WEBSITE_STATUS_LABEL[row.websiteStatus] : "—"}
-                </td>
-                <td className="p-2 text-slate-600">
-                  {BEDRIJFSCLASSIFICATIE_LABEL[row.bedrijfsclassificatie]}
-                </td>
-                <td className="p-2 text-slate-600">{formatValue(row.icpScore)}</td>
-                <td className="p-2 text-slate-600">
-                  {row.icpClassification ? ICP_LABEL[row.icpClassification] : "—"}
-                </td>
-                <td
-                  className="max-w-[260px] truncate p-2 text-slate-600"
-                  title={row.belangrijksteReden ?? undefined}
-                >
-                  {formatValue(row.belangrijksteReden)}
-                </td>
-                <td className="p-2">
-                  <span
-                    className={`whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASS[row.status]}`}
-                  >
-                    {STATUS_LABEL[row.status]}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {sortedRows.map((row) => {
+              const isExpanded = expandedIds.has(row.importRowId);
+              return (
+                <Fragment key={row.importRowId}>
+                  <tr>
+                    <td className="p-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(row.importRowId)}
+                        onChange={() => toggleRow(row.importRowId)}
+                        aria-label={`${row.origineleBedrijfsnaam ?? "Bedrijf"} selecteren`}
+                      />
+                    </td>
+                    <td className="p-2 text-slate-900">{formatValue(row.origineleBedrijfsnaam)}</td>
+                    <td className="p-2 text-slate-600">{formatValue(row.officieleNaam)}</td>
+                    <td className="p-2 text-slate-600">{formatValue(row.kvkNummer)}</td>
+                    <td className="p-2 text-slate-600">{formatValue(row.rechtsvorm)}</td>
+                    <td className="p-2 text-slate-600">{formatValue(row.plaats)}</td>
+                    <td className="max-w-[220px] truncate p-2 text-slate-600" title={row.sbiActiviteit ?? undefined}>
+                      {formatValue(row.sbiActiviteit)}
+                    </td>
+                    <td className="p-2 text-slate-600">{formatValue(row.aantalMedewerkers)}</td>
+                    <td className="p-2 text-slate-600">{formatValue(row.kvkMatchConfidence)}</td>
+                    <td className="p-2 text-slate-600">
+                      {row.websiteStatus ? WEBSITE_STATUS_LABEL[row.websiteStatus] : "—"}
+                    </td>
+                    <td className="p-2 text-slate-600">
+                      {BEDRIJFSCLASSIFICATIE_LABEL[row.bedrijfsclassificatie]}
+                    </td>
+                    <td className="p-2 text-slate-600">{formatValue(row.icpScore)}</td>
+                    <td className="p-2 text-slate-600">
+                      {row.icpClassification ? ICP_LABEL[row.icpClassification] : "—"}
+                    </td>
+                    <td
+                      className="max-w-[260px] truncate p-2 text-slate-600"
+                      title={row.belangrijksteReden ?? undefined}
+                    >
+                      {formatValue(row.belangrijksteReden)}
+                    </td>
+                    <td className="p-2">
+                      <span
+                        className={`whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASS[row.status]}`}
+                      >
+                        {STATUS_LABEL[row.status]}
+                      </span>
+                    </td>
+                    <td className="p-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(row.importRowId)}
+                        className="whitespace-nowrap text-xs font-medium text-blue-700 underline hover:text-blue-900"
+                        aria-expanded={isExpanded}
+                      >
+                        {isExpanded ? "Verbergen" : "Details"}
+                      </button>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={16} className="bg-slate-50 p-4">
+                        <CompanyDetailPanel row={row} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
         {sortedRows.length === 0 && (
           <p className="p-4 text-sm text-slate-500">Geen bedrijven gevonden voor deze filters.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "Waarom krijgt dit bedrijf deze score?" — compacte toelichting per
+ * bedrijf, uitgeklapt vanuit de hoofdtabel. Toont expliciet wanneer een
+ * website ontbreekt, niet bereikbaar was of weinig opleverde, in plaats
+ * van dat stilzwijgend leeg te laten.
+ */
+function CompanyDetailPanel({ row }: { row: CompanyResultRow }) {
+  const hasWebsiteContent =
+    row.companyDescription !== null ||
+    row.productsServices.length > 0 ||
+    row.industriesServed.length > 0 ||
+    row.operationalSignals.length > 0 ||
+    row.businessModel !== null ||
+    row.websiteLocations.length > 0;
+
+  const websiteNotice = !row.websiteStatus
+    ? "Nog niet gecontroleerd."
+    : row.websiteStatus === "no_url"
+      ? "Geen website bekend voor dit bedrijf."
+      : row.websiteStatus === "insufficient_content"
+        ? "Website bereikbaar, maar bevatte te weinig bruikbare inhoud."
+        : WEBSITE_UNREACHABLE_STATUSES.has(row.websiteStatus)
+          ? `Website niet bereikbaar (${WEBSITE_STATUS_LABEL[row.websiteStatus]}).`
+          : null;
+
+  return (
+    <div className="grid gap-4 text-sm sm:grid-cols-2">
+      <div>
+        <h3 className="mb-2 font-medium text-slate-900">Website</h3>
+        <dl className="space-y-1 text-slate-600">
+          <div className="flex justify-between gap-2">
+            <dt>Status</dt>
+            <dd>{row.websiteStatus ? WEBSITE_STATUS_LABEL[row.websiteStatus] : "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>Laatst gecontroleerd</dt>
+            <dd>{formatDateTime(row.websiteCheckedAt)}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>Pagina&apos;s geanalyseerd</dt>
+            <dd>{row.pagesAnalyzed}</dd>
+          </div>
+        </dl>
+
+        {websiteNotice && <p className="mt-3 rounded-md bg-amber-50 p-2 text-amber-800">{websiteNotice}</p>}
+
+        {hasWebsiteContent && (
+          <div className="mt-3 space-y-2 text-slate-700">
+            {row.companyDescription && <p>{row.companyDescription}</p>}
+            {row.productsServices.length > 0 && (
+              <p>
+                <span className="font-medium">Producten/diensten:</span> {row.productsServices.join(", ")}
+              </p>
+            )}
+            {row.industriesServed.length > 0 && (
+              <p>
+                <span className="font-medium">Sectoren:</span> {row.industriesServed.join(", ")}
+              </p>
+            )}
+            {row.targetMarkets.length > 0 && (
+              <p>
+                <span className="font-medium">Doelmarkten:</span> {row.targetMarkets.join(", ")}
+              </p>
+            )}
+            {row.businessModel && (
+              <p>
+                <span className="font-medium">Business model:</span> {row.businessModel}
+              </p>
+            )}
+            {row.operationalSignals.length > 0 && (
+              <p>
+                <span className="font-medium">Operationele signalen:</span> {row.operationalSignals.join(", ")}
+              </p>
+            )}
+            {row.websiteLocations.length > 0 && (
+              <p>
+                <span className="font-medium">Locaties (website):</span> {row.websiteLocations.join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-2 font-medium text-slate-900">AI-conclusie</h3>
+        <dl className="space-y-1 text-slate-600">
+          <div className="flex justify-between gap-2">
+            <dt>Score</dt>
+            <dd>{formatValue(row.icpScore)}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>Classificatie</dt>
+            <dd>{row.icpClassification ? ICP_LABEL[row.icpClassification] : "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>Confidence</dt>
+            <dd>{row.icpConfidence !== null ? `${Math.round(row.icpConfidence * 100)}%` : "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>Data completeness</dt>
+            <dd>{row.dataCompleteness !== null ? `${Math.round(row.dataCompleteness * 100)}%` : "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>Databronnen gebruikt</dt>
+            <dd>
+              {row.dataSources.length > 0
+                ? row.dataSources.map((source) => DATA_SOURCE_LABEL[source] ?? source).join(" + ")
+                : "—"}
+            </dd>
+          </div>
+        </dl>
+
+        {row.icpReasons.length > 0 && (
+          <p className="mt-3 text-slate-700">
+            <span className="font-medium">Redenen:</span> {row.icpReasons.join("; ")}
+          </p>
+        )}
+        {row.keySalesSignals.length > 0 && (
+          <p className="mt-2 text-slate-700">
+            <span className="font-medium">Sales-signalen:</span> {row.keySalesSignals.join("; ")}
+          </p>
+        )}
+        {row.missingImportantData.length > 0 && (
+          <p className="mt-2 text-amber-800">
+            <span className="font-medium">Ontbrekende, relevante informatie:</span>{" "}
+            {row.missingImportantData.join("; ")}
+          </p>
         )}
       </div>
     </div>

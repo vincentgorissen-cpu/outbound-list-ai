@@ -1,6 +1,11 @@
 import type { IcpClassification, IcpScoreResult } from "./types";
 
-const VALID_CLASSIFICATIONS: readonly IcpClassification[] = ["high_fit", "medium_fit", "low_fit"];
+const VALID_CLASSIFICATIONS: readonly IcpClassification[] = [
+  "high_fit",
+  "medium_fit",
+  "low_fit",
+  "insufficient_data",
+];
 
 export type IcpValidationResult =
   | { valid: true; value: IcpScoreResult }
@@ -35,7 +40,10 @@ export function validateIcpScoreResult(input: unknown): IcpValidationResult {
     typeof classification !== "string" ||
     !VALID_CLASSIFICATIONS.includes(classification as IcpClassification)
   ) {
-    return { valid: false, error: "classification moet high_fit, medium_fit of low_fit zijn." };
+    return {
+      valid: false,
+      error: "classification moet high_fit, medium_fit, low_fit of insufficient_data zijn.",
+    };
   }
 
   if (!isStringArray(reasons)) {
@@ -53,6 +61,16 @@ export function validateIcpScoreResult(input: unknown): IcpValidationResult {
     return { valid: false, error: "confidence moet tussen 0.0 en 1.0 liggen." };
   }
 
+  const { missing_important_data, key_sales_signals } = candidate;
+
+  if (!isStringArray(missing_important_data)) {
+    return { valid: false, error: "missing_important_data moet een lijst van tekst zijn." };
+  }
+
+  if (!isStringArray(key_sales_signals)) {
+    return { valid: false, error: "key_sales_signals moet een lijst van tekst zijn." };
+  }
+
   return {
     valid: true,
     value: {
@@ -61,6 +79,8 @@ export function validateIcpScoreResult(input: unknown): IcpValidationResult {
       reasons,
       concerns,
       confidence,
+      missingImportantData: missing_important_data,
+      keySalesSignals: key_sales_signals,
     },
   };
 }
